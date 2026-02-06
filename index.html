@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Money Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./dist/output.css" />
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-amber-50 font-body text-slate-900">
+  <main id="login" class="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-10 px-6 py-12">
+    <header class="flex flex-col gap-4">
+      <p class="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-600">Money Tracker</p>
+      <h1 class="font-display text-4xl font-bold leading-tight md:text-5xl">Login dan catat uangmu dengan lebih tenang.</h1>
+      <p class="max-w-xl text-base text-slate-600">Simpan riwayat pemasukan dan pengeluaran di akun Google kamu. Datanya tetap ada meski logout atau pindah device.</p>
+    </header>
+
+    <section class="grid gap-6 md:grid-cols-[1.2fr_1fr]">
+      <div class="rounded-3xl bg-white p-6 shadow-xl shadow-emerald-100/60">
+        <h2 class="font-display text-xl font-semibold">Kenapa Money Tracker?</h2>
+        <div class="mt-5 space-y-4 text-sm text-slate-600">
+          <div class="flex items-start gap-3">
+            <span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">1</span>
+            <p>Login cepat dengan Google, tanpa bikin akun baru.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">2</span>
+            <p>Transaksi tersimpan aman di database dan bisa diakses kapan saja.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">3</span>
+            <p>UI bersih dan fokus agar kamu mudah melihat arus kas.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-3xl bg-white p-6 shadow-xl shadow-emerald-100/60">
+        <div class="flex h-full flex-col justify-between gap-6">
+          <div>
+            <h3 class="font-display text-xl font-semibold">Masuk untuk mulai</h3>
+            <p class="mt-2 text-sm text-slate-500">Klik tombol Google di bawah ini untuk login.</p>
+          </div>
+          <button id="google-login" type="button" class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-lg shadow-emerald-100 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-700">
+            <span class="inline-flex items-center justify-center gap-2">
+              <span class="text-lg">🔐</span>
+              Login dengan Google
+            </span>
+          </button>
+          <p class="text-xs text-slate-400">Dengan login, kamu setuju data transaksi disimpan di database Firebase.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main id="app" class="mx-auto hidden min-h-screen max-w-3xl flex-col gap-6 px-4 py-10 md:py-14">
+    <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">Money Tracker</p>
+        <h1 class="font-display text-3xl font-bold md:text-4xl">Kelola arus uangmu dengan rapi</h1>
+      </div>
+      <div class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-lg shadow-emerald-100/60">
+        <img id="user-avatar" alt="" class="h-10 w-10 rounded-full bg-slate-100 object-cover" />
+        <div class="text-sm">
+          <p id="user-name" class="font-semibold text-slate-700"></p>
+          <p id="user-email" class="text-xs text-slate-400"></p>
+        </div>
+        <button id="logout" type="button" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-rose-200 hover:text-rose-500">Logout</button>
+      </div>
+    </header>
+
+    <section class="grid gap-5 md:grid-cols-[1.1fr_1fr]">
+      <div class="rounded-3xl bg-white p-6 shadow-xl shadow-emerald-100/60">
+        <p class="text-sm font-medium text-slate-500">Saldo saat ini</p>
+        <div id="balance" class="mt-2 font-display text-3xl font-bold text-emerald-600">Rp 0</div>
+        <div class="mt-6 grid gap-3">
+          <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Ringkasan</p>
+            <p id="summary" class="mt-2 text-sm text-slate-600">Belum ada transaksi. Tambahkan sekarang.</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="transaction-form" class="rounded-3xl bg-white p-6 shadow-xl shadow-emerald-100/60">
+        <h2 class="font-display text-xl font-semibold">Tambah transaksi</h2>
+        <div class="mt-5 space-y-4">
+          <div>
+            <label for="desc" class="text-sm font-medium text-slate-600">Keterangan</label>
+            <input id="desc" name="desc" placeholder="Makan, gaji, transport" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" />
+          </div>
+          <div>
+            <label for="amount" class="text-sm font-medium text-slate-600">Jumlah</label>
+            <input id="amount" name="amount" inputmode="numeric" placeholder="Rp 0" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" />
+            <p class="mt-2 text-xs text-slate-400">Format rupiah otomatis.</p>
+          </div>
+          <div>
+            <label for="type" class="text-sm font-medium text-slate-600">Tipe</label>
+            <select id="type" name="type" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+              <option value="income">Pemasukan</option>
+              <option value="expense">Pengeluaran</option>
+            </select>
+          </div>
+        </div>
+        <button id="submit-btn" type="submit" disabled class="mt-6 w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300">Tambah transaksi</button>
+      </form>
+    </section>
+
+    <section class="rounded-3xl bg-white p-6 shadow-xl shadow-emerald-100/60">
+      <div class="flex items-center justify-between">
+        <h2 class="font-display text-xl font-semibold">Riwayat</h2>
+        <span id="count" class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">0 transaksi</span>
+      </div>
+      <ul id="list" class="mt-5 space-y-3"></ul>
+      <p id="empty" class="mt-6 text-center text-sm text-slate-400">Belum ada transaksi. Mulai catat hari ini.</p>
+    </section>
+  </main>
+
+  <footer class="px-6 pb-8 text-center text-xs text-slate-400">
+    © 2026 Lingga Ardyansyah. All rights reserved.
+  </footer>
+
+  <script type="module" src="./src/js/main.js"></script>
+</body>
+</html>
