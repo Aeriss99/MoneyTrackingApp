@@ -70,7 +70,9 @@ export function renderTransactions(listEl, emptyEl, transactions) {
 
     const type = document.createElement("span");
     type.className = "text-xs text-slate-400";
-    type.textContent = item.type === "income" ? "Pemasukan" : "Pengeluaran";
+    const typeLabel = item.type === "income" ? "Pemasukan" : "Pengeluaran";
+    const categoryLabel = item.category || "Lainnya";
+    type.textContent = `${typeLabel} • ${categoryLabel}`;
 
     info.append(desc, type);
 

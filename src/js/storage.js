@@ -1,24 +1,59 @@
-import { collection, addDoc, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp } from "./firebase.js";
-import { db } from "./firebase.js";
+const STORAGE_PREFIX = "money-tracker:transactions";
+
+function getStorageKey(userId) {
+  return `${STORAGE_PREFIX}:${userId || "guest"}`;
+}
+
+function parseTransactions(rawValue) {
+  if (!rawValue) return [];
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Failed to parse local transactions:", error);
+    return [];
+  }
+}
+
+function readTransactions(userId) {
+  const key = getStorageKey(userId);
+  const rawValue = localStorage.getItem(key);
+  return parseTransactions(rawValue);
+}
+
+function writeTransactions(userId, transactions) {
+  const key = getStorageKey(userId);
+  localStorage.setItem(key, JSON.stringify(transactions));
+}
+
+function createTransactionId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  return `tx-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
 
 export async function fetchTransactions(userId) {
-  const transactionsRef = collection(db, "users", userId, "transactions");
-  const q = query(transactionsRef, orderBy("createdAt", "desc"));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((docSnap) => ({
-    id: docSnap.id,
-    ...docSnap.data(),
-  }));
+  const transactions = readTransactions(userId);
+  return transactions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export async function createTransaction(userId, transaction) {
-  const transactionsRef = collection(db, "users", userId, "transactions");
-  const payload = { ...transaction, createdAt: serverTimestamp() };
-  await addDoc(transactionsRef, payload);
+  const existing = readTransactions(userId);
+  const payload = {
+    ...transaction,
+    id: createTransactionId(),
+    createdAt: Date.now(),
+  };
+
+  writeTransactions(userId, [payload, ...existing]);
+  return payload;
 }
 
 export async function deleteTransaction(userId, transactionId) {
-  const transactionRef = doc(db, "users", userId, "transactions", transactionId);
-  await deleteDoc(transactionRef);
+  const existing = readTransactions(userId);
+  const filtered = existing.filter((item) => item.id !== transactionId);
+  writeTransactions(userId, filtered);
 }
