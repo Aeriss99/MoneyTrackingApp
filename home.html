@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Money Tracker | Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./dist/output.css" />
+  <style>
+    :root {
+      --bg: #f2f1ee;
+      --surface: #fcfcfa;
+      --ink: #15171b;
+      --muted: #5f656f;
+      --line: #d8dbdf;
+      --brand: #1f3a33;
+      --brand-soft: #dce7e3;
+    }
+
+    .font-display {
+      font-family: "Newsreader", serif;
+    }
+
+    .font-ui {
+      font-family: "Outfit", sans-serif;
+    }
+  </style>
+</head>
+<body data-page="home" class="font-ui min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+  <main class="mx-auto min-h-screen w-full max-w-6xl px-5 py-6 md:px-10 md:py-8">
+    <header class="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_20px_50px_-42px_rgba(0,0,0,0.55)] md:p-5">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">Money Tracker</p>
+          <h1 class="font-display mt-1 text-4xl leading-none md:text-5xl">Home Dashboard</h1>
+        </div>
+        <div class="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-white px-3 py-2">
+          <img id="user-avatar" alt="" class="h-10 w-10 rounded-full bg-slate-200 object-cover" />
+          <div class="min-w-0 text-sm">
+            <p id="user-name" class="truncate font-semibold text-slate-800"></p>
+            <p id="user-email" class="truncate text-xs text-[var(--muted)]"></p>
+          </div>
+          <button id="logout" type="button" class="rounded-full border border-[var(--line)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] transition hover:border-rose-200 hover:text-rose-600">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="mt-6 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+      <div class="space-y-5">
+        <article class="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-6">
+          <p class="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">Current Balance</p>
+          <div id="balance" class="font-display mt-2 text-5xl leading-none text-[var(--brand)]">Rp 0</div>
+          <p id="summary" class="mt-3 text-sm text-[var(--muted)]">Belum ada transaksi. Tambahkan sekarang.</p>
+        </article>
+
+        <article class="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">Riwayat transaksi</h2>
+            <span id="count" class="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand)]">0 transaksi</span>
+          </div>
+          <ul id="list" class="mt-4 space-y-2.5"></ul>
+          <p id="empty" class="mt-4 rounded-xl border border-dashed border-[var(--line)] px-3 py-4 text-center text-sm text-[var(--muted)]">Belum ada transaksi. Mulai catat hari ini.</p>
+        </article>
+      </div>
+
+      <form id="transaction-form" class="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-6">
+        <p class="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">New Entry</p>
+        <h2 class="font-display mt-1 text-4xl leading-none">Tambah transaksi</h2>
+
+        <div class="mt-6 space-y-4">
+          <div>
+            <label for="desc" class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Keterangan</label>
+            <input id="desc" name="desc" placeholder="Contoh: Gaji, makan, internet" class="mt-2 w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand-soft)]" />
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="amount" class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Jumlah</label>
+              <input id="amount" name="amount" inputmode="numeric" placeholder="Rp 0" class="mt-2 w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand-soft)]" />
+            </div>
+            <div>
+              <label for="type" class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Tipe</label>
+              <select id="type" name="type" class="mt-2 w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand-soft)]">
+                <option value="income">Pemasukan</option>
+                <option value="expense">Pengeluaran</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="text-xs text-[var(--muted)]">Nominal otomatis diformat ke rupiah.</p>
+        </div>
+
+        <button id="submit-btn" type="submit" disabled class="mt-6 w-full rounded-full bg-[var(--brand)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#162b25] disabled:cursor-not-allowed disabled:bg-[#8da39c]">Simpan transaksi</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="pb-6 text-center text-[11px] tracking-[0.16em] text-[var(--muted)]">© 2026 Lingga Ardyansyah</footer>
+  <script type="module" src="./src/js/main.js"></script>
+</body>
+</html>

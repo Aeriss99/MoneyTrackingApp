@@ -10,6 +10,7 @@ import {
   renderTransactions,
 } from "./ui.js";
 
+<<<<<<< HEAD
 const CHART_COLORS = [
   "#ef4444",
   "#f59e0b",
@@ -20,11 +21,16 @@ const CHART_COLORS = [
   "#ec4899",
   "#84cc16",
 ];
+=======
+const page = document.body?.dataset.page || "login";
+const isLoginPage = page === "login";
+const isHomePage = page === "home";
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 
 const elements = {
-  loginSection: document.getElementById("login"),
-  appSection: document.getElementById("app"),
   loginBtn: document.getElementById("google-login"),
+  loginHeroBtn: document.getElementById("google-login-hero"),
+  loginCtaBtn: document.getElementById("google-login-cta"),
   logoutBtn: document.getElementById("logout"),
   userName: document.getElementById("user-name"),
   userEmail: document.getElementById("user-email"),
@@ -57,6 +63,7 @@ function withTimeout(promise, ms) {
   ]);
 }
 
+<<<<<<< HEAD
 function getChartColors(total) {
   return Array.from({ length: total }, (_, index) => CHART_COLORS[index % CHART_COLORS.length]);
 }
@@ -117,9 +124,16 @@ function updateExpenseChart({ createIfMissing = true } = {}) {
   if (elements.chartEmpty) {
     elements.chartEmpty.classList.toggle("hidden", labels.length > 0);
   }
+=======
+function goTo(path) {
+  if (window.location.pathname.endsWith(path)) return;
+  window.location.href = new URL(path, window.location.href).href;
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 }
 
 function updateSubmitState() {
+  if (!elements.submitBtn || !elements.descInput || !elements.amountInput) return;
+
   if (!currentUser) {
     elements.submitBtn.disabled = true;
     return;
@@ -132,6 +146,10 @@ function updateSubmitState() {
 }
 
 function refreshUI() {
+  if (!isHomePage || !elements.balanceEl || !elements.summaryEl || !elements.countEl || !elements.listEl || !elements.emptyEl) {
+    return;
+  }
+
   const totals = getTotals(transactions);
   const balance = getBalance(transactions);
 
@@ -144,6 +162,7 @@ function refreshUI() {
 
 function clearUI() {
   transactions = [];
+<<<<<<< HEAD
   updateBalance(elements.balanceEl, 0);
   updateSummary(elements.summaryEl, { income: 0, expense: 0 }, false);
   updateCount(elements.countEl, 0);
@@ -160,9 +179,14 @@ function setAuthUI(user) {
 
   elements.loginSection.classList.remove("hidden");
   elements.appSection.classList.add("hidden");
+=======
+  refreshUI();
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 }
 
 function setUserInfo(user) {
+  if (!elements.userName || !elements.userEmail || !elements.userAvatar) return;
+
   if (!user) {
     elements.userName.textContent = "";
     elements.userEmail.textContent = "";
@@ -178,7 +202,7 @@ function setUserInfo(user) {
 }
 
 async function loadAndRender() {
-  if (!currentUser) return;
+  if (!currentUser || !isHomePage || !elements.summaryEl) return;
   elements.summaryEl.textContent = "Memuat transaksi...";
 
   try {
@@ -193,7 +217,7 @@ async function loadAndRender() {
   updateSubmitState();
 }
 
-elements.loginBtn.addEventListener("click", async () => {
+async function handleLogin() {
   try {
     await signInWithPopup(auth, provider);
   } catch (error) {
@@ -201,32 +225,58 @@ elements.loginBtn.addEventListener("click", async () => {
     console.error("Login error:", error);
     alert(message);
   }
-});
+}
 
-elements.logoutBtn.addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    const message = error?.code ? `${error.code}: ${error.message}` : "Logout gagal. Coba lagi.";
-    console.error("Logout error:", error);
-    alert(message);
+if (elements.loginBtn) {
+  elements.loginBtn.addEventListener("click", handleLogin);
+}
+
+[elements.loginHeroBtn, elements.loginCtaBtn].forEach((button) => {
+  if (button) {
+    button.addEventListener("click", () => {
+      if (elements.loginBtn) {
+        elements.loginBtn.click();
+      } else {
+        handleLogin();
+      }
+    });
   }
 });
 
-elements.amountInput.addEventListener("input", () => {
-  syncAmountInput(elements.amountInput);
-  updateSubmitState();
-});
+if (elements.logoutBtn) {
+  elements.logoutBtn.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      const message = error?.code ? `${error.code}: ${error.message}` : "Logout gagal. Coba lagi.";
+      console.error("Logout error:", error);
+      alert(message);
+    }
+  });
+}
 
+<<<<<<< HEAD
 elements.descInput.addEventListener("input", updateSubmitState);
 elements.typeInput.addEventListener("change", updateSubmitState);
 elements.categoryInput.addEventListener("change", updateSubmitState);
+=======
+if (elements.amountInput) {
+  elements.amountInput.addEventListener("input", () => {
+    syncAmountInput(elements.amountInput);
+    updateSubmitState();
+  });
+}
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 
-elements.form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+if (elements.descInput) {
+  elements.descInput.addEventListener("input", updateSubmitState);
+}
 
-  if (!currentUser) return;
+if (elements.form) {
+  elements.form.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
+<<<<<<< HEAD
   const desc = elements.descInput.value.trim();
   const amount = Number(elements.amountInput.dataset.raw || getRawAmount(elements.amountInput.value));
   const type = elements.typeInput.value;
@@ -243,9 +293,17 @@ elements.form.addEventListener("submit", async (event) => {
     updateSubmitState();
     return;
   }
+=======
+    if (!currentUser || !elements.descInput || !elements.amountInput || !elements.typeInput) return;
 
-  elements.submitBtn.disabled = true;
+    const desc = elements.descInput.value.trim();
+    const amount = Number(elements.amountInput.dataset.raw || getRawAmount(elements.amountInput.value));
+    const type = elements.typeInput.value;
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 
+    if (!desc || !amount) return;
+
+<<<<<<< HEAD
   try {
     await createTransaction(currentUser.uid, { desc, amount, type, category });
     await loadAndRender();
@@ -256,36 +314,66 @@ elements.form.addEventListener("submit", async (event) => {
   } catch (error) {
     alert("Gagal menyimpan transaksi.");
   }
+=======
+    if (elements.submitBtn) {
+      elements.submitBtn.disabled = true;
+    }
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 
-  updateSubmitState();
-});
+    try {
+      await createTransaction(currentUser.uid, { desc, amount, type });
+      await loadAndRender();
+      elements.form.reset();
+      elements.amountInput.dataset.raw = "";
+    } catch (error) {
+      alert("Gagal menyimpan transaksi.");
+    }
 
-elements.listEl.addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-id]");
-  if (!button || !currentUser) return;
+    updateSubmitState();
+  });
+}
 
-  const id = button.dataset.id;
-  if (!id) return;
+if (elements.listEl) {
+  elements.listEl.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-id]");
+    if (!button || !currentUser) return;
 
-  try {
-    await deleteTransaction(currentUser.uid, id);
-    await loadAndRender();
-  } catch (error) {
-    alert("Gagal menghapus transaksi.");
-  }
-});
+    const id = button.dataset.id;
+    if (!id) return;
+
+    try {
+      await deleteTransaction(currentUser.uid, id);
+      await loadAndRender();
+    } catch (error) {
+      alert("Gagal menghapus transaksi.");
+    }
+  });
+}
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
-  setAuthUI(user);
-  setUserInfo(user);
 
-  if (user) {
-    await loadAndRender();
-  } else {
+  if (isLoginPage) {
+    if (user) {
+      goTo("home.html");
+    }
+    return;
+  }
+
+  if (isHomePage && !user) {
     clearUI();
     updateSubmitState();
+    goTo("index.html");
+    return;
   }
+
+  if (isHomePage && user) {
+    setUserInfo(user);
+    await loadAndRender();
+    return;
+  }
+
+  updateSubmitState();
 });
 
 updateSubmitState();

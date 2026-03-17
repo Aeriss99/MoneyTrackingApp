@@ -59,25 +59,30 @@ export function renderTransactions(listEl, emptyEl, transactions) {
   transactions.forEach((item) => {
     const li = document.createElement("li");
     li.className =
-      "flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md";
+      "flex items-center justify-between gap-3 rounded-2xl border border-[#d8dbdf] bg-white px-4 py-3 text-sm transition hover:border-[#bfc5cd]";
 
     const info = document.createElement("div");
     info.className = "flex flex-col";
 
     const desc = document.createElement("span");
-    desc.className = "font-medium text-slate-700";
+    desc.className = "font-medium text-slate-800";
     desc.textContent = item.desc;
 
     const type = document.createElement("span");
+<<<<<<< HEAD
     type.className = "text-xs text-slate-400";
     const typeLabel = item.type === "income" ? "Pemasukan" : "Pengeluaran";
     const categoryLabel = item.category || "Lainnya";
     type.textContent = `${typeLabel} • ${categoryLabel}`;
+=======
+    type.className = "text-xs uppercase tracking-[0.15em] text-slate-400";
+    type.textContent = item.type === "income" ? "Pemasukan" : "Pengeluaran";
+>>>>>>> 101d5ec (feat(ui): update index page and add home.html)
 
     info.append(desc, type);
 
     const amountWrap = document.createElement("div");
-    amountWrap.className = "flex items-center gap-3";
+    amountWrap.className = "flex items-center gap-2.5";
 
     const amount = document.createElement("span");
     amount.className =
@@ -88,7 +93,7 @@ export function renderTransactions(listEl, emptyEl, transactions) {
     removeBtn.type = "button";
     removeBtn.dataset.id = String(item.id || "");
     removeBtn.className =
-      "rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-rose-200 hover:text-rose-500";
+      "rounded-full border border-[#d8dbdf] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 transition hover:border-rose-200 hover:text-rose-600";
     removeBtn.textContent = "Hapus";
 
     amountWrap.append(amount, removeBtn);
