@@ -11,138 +11,192 @@
     rel="stylesheet"
   />
   <link rel="stylesheet" href="./styles.css" />
-  <script defer src="./app.js"></script>
+  <script type="module" src="./dashboard.js?v=20260322-1"></script>
 </head>
 <body>
   <div class="bg-orb bg-orb--top"></div>
   <div class="bg-orb bg-orb--bottom"></div>
 
-  <div class="app">
-    <header class="card navbar">
-      <div class="brand">
-        <span class="brand-badge" aria-hidden="true">MT</span>
+  <div class="app-shell">
+    <header class="card topbar">
+      <div class="topbar-brand">
+        <span class="brand-badge">MT</span>
         <div>
-          <p class="eyebrow">Personal Finance</p>
-          <h1>Money Tracking Dashboard</h1>
+          <p class="eyebrow">Fintech Workspace</p>
+          <h1>MoneyTracking</h1>
         </div>
       </div>
-      <div class="meta">
-        <p class="meta-label">Today</p>
-        <p id="today-date" class="meta-value"></p>
+
+      <label class="search-field" for="global-search">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="global-search" type="search" placeholder="Search description, category, type..." />
+      </label>
+
+      <div class="topbar-right">
+        <div class="today-box">
+          <p class="today-label">Today</p>
+          <p id="today-date" class="today-value">-</p>
+        </div>
+
+        <div class="user-box">
+          <img id="user-photo" class="user-photo" alt="User profile" />
+          <div class="user-meta">
+            <p id="user-name" class="user-name">Guest</p>
+            <p id="user-email" class="user-email">-</p>
+          </div>
+          <button id="logout-btn" type="button" class="button button--ghost">Logout</button>
+        </div>
       </div>
     </header>
 
-    <main class="layout">
-      <section class="summary-grid" aria-label="Balance summary">
-        <article class="card summary-card">
-          <p class="summary-label">Total Balance</p>
-          <p id="balance-value" class="summary-value">Rp0</p>
-        </article>
-        <article class="card summary-card">
-          <p class="summary-label">Income</p>
-          <p id="income-value" class="summary-value summary-value--income">Rp0</p>
-        </article>
-        <article class="card summary-card">
-          <p class="summary-label">Expense</p>
-          <p id="expense-value" class="summary-value summary-value--expense">Rp0</p>
-        </article>
-        <article class="card summary-card">
-          <p class="summary-label">Transactions</p>
-          <p id="count-value" class="summary-value">0</p>
-        </article>
-      </section>
+    <main class="dashboard-grid">
+      <section class="main-column">
+        <section class="summary-grid" aria-label="Financial summary">
+          <article class="card summary-card">
+            <p class="summary-label">Total Balance</p>
+            <p id="summary-balance" class="summary-value">Rp0</p>
+          </article>
+          <article class="card summary-card">
+            <p class="summary-label">Income</p>
+            <p id="summary-income" class="summary-value summary-value--income">Rp0</p>
+          </article>
+          <article class="card summary-card">
+            <p class="summary-label">Expense</p>
+            <p id="summary-expense" class="summary-value summary-value--expense">Rp0</p>
+          </article>
+          <article class="card summary-card">
+            <p class="summary-label">Transactions</p>
+            <p id="summary-count" class="summary-value">0</p>
+          </article>
+        </section>
 
-      <section class="content-grid">
-        <section class="card panel transactions-panel" aria-label="Transaction list">
+        <section class="card list-panel" aria-label="Transactions list">
           <div class="panel-head">
-            <div>
-              <h2>Transactions</h2>
-              <p id="transaction-count" class="panel-subtitle">0 records</p>
-            </div>
-            <button id="add-sample-btn" type="button" class="button button--ghost">Add Sample</button>
+            <h2>Transactions</h2>
+            <span id="transaction-count-badge" class="badge-count">0 items</span>
           </div>
 
-          <div class="filters">
-            <label class="field field--compact">
-              <span>Search</span>
-              <input id="search-input" type="search" placeholder="Description, category, note" />
-            </label>
-            <label class="field field--compact">
-              <span>Type</span>
-              <select id="filter-type">
-                <option value="all">All</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </label>
-            <button id="clear-filters-btn" type="button" class="button button--ghost">Clear</button>
+          <div id="transactions-loading" class="inline-loading" hidden>
+            <span>Syncing transactions...</span>
           </div>
 
-          <ul id="transaction-list" class="transaction-list" aria-live="polite"></ul>
+          <ul id="transaction-list" class="transaction-list"></ul>
 
-          <div id="empty-state" class="empty-state" hidden>
-            <p class="empty-title">No transactions yet</p>
-            <p class="empty-description">Start by adding your first income or expense.</p>
-            <button id="empty-action-btn" type="button" class="button button--primary">Add First Transaction</button>
+          <div id="transactions-empty" class="empty-state" hidden>
+            <h3 id="empty-title">No transactions yet</h3>
+            <p id="empty-description">Start by adding your first income or expense.</p>
           </div>
         </section>
 
-        <aside class="card panel form-panel" aria-label="Transaction form">
+        <section class="card history-panel" aria-label="Delete history">
           <div class="panel-head">
-            <div>
-              <p id="form-mode" class="form-mode">CREATE</p>
-              <h2 id="form-title">Add Transaction</h2>
-            </div>
+            <h2>Delete History</h2>
+            <span class="badge-count">Audit</span>
           </div>
 
-          <form id="transaction-form" class="form" novalidate>
-            <input id="transaction-id" type="hidden" />
+          <div id="delete-history-loading" class="inline-loading" hidden>
+            <span>Syncing delete history...</span>
+          </div>
 
-            <label class="field">
-              <span>Description</span>
-              <input id="description-input" type="text" maxlength="80" placeholder="Salary, groceries, internet bill" required />
-            </label>
+          <ul id="delete-history-list" class="history-list"></ul>
 
-            <label class="field">
-              <span>Amount (IDR)</span>
-              <input id="amount-input" type="text" inputmode="numeric" placeholder="250000" required />
-            </label>
-
-            <div class="field-row">
-              <label class="field">
-                <span>Type</span>
-                <select id="type-input">
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>Category</span>
-                <select id="category-input"></select>
-              </label>
-            </div>
-
-            <label class="field">
-              <span>Date</span>
-              <input id="date-input" type="date" required />
-            </label>
-
-            <label class="field">
-              <span>Note (Optional)</span>
-              <textarea id="note-input" rows="3" maxlength="140" placeholder="Any details you want to remember"></textarea>
-            </label>
-
-            <p id="form-feedback" class="form-feedback" aria-live="polite"></p>
-
-            <div class="form-actions">
-              <button id="cancel-edit-btn" type="button" class="button button--ghost" hidden>Cancel Edit</button>
-              <button id="submit-btn" type="submit" class="button button--primary">Add Transaction</button>
-            </div>
-          </form>
-        </aside>
+          <div id="delete-history-empty" class="empty-state" hidden>
+            <h3>No delete history</h3>
+            <p>Deleted transactions will appear here.</p>
+          </div>
+        </section>
       </section>
+
+      <aside class="card form-panel" aria-label="Transaction form">
+        <div class="panel-head">
+          <div>
+            <p id="form-mode" class="form-mode">CREATE</p>
+            <h2 id="form-title">Add Transaction</h2>
+          </div>
+        </div>
+
+        <form id="transaction-form" class="form" novalidate>
+          <input id="editing-id" type="hidden" />
+
+          <label class="field">
+            <span>Description</span>
+            <input id="description-input" type="text" maxlength="100" placeholder="Salary, groceries, internet bill" required />
+          </label>
+
+          <label class="field">
+            <span>Amount</span>
+            <input id="amount-input" type="text" inputmode="numeric" value="Rp " required />
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Type</span>
+              <select id="type-input">
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Category</span>
+              <select id="category-input"></select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Date</span>
+            <input id="date-input" type="date" required />
+          </label>
+
+          <label class="field">
+            <span>Note</span>
+            <textarea id="note-input" rows="3" maxlength="180" placeholder="Optional note..."></textarea>
+          </label>
+
+          <p id="form-feedback" class="form-feedback" aria-live="polite"></p>
+
+          <div class="form-actions">
+            <button id="cancel-edit-btn" type="button" class="button button--ghost" hidden>Cancel</button>
+            <button id="submit-btn" type="submit" class="button button--primary">Save Transaction</button>
+          </div>
+        </form>
+
+        <section id="profile-security" class="pin-section" hidden>
+          <div class="panel-head">
+            <h3>Profile Security</h3>
+            <span id="pin-status-badge" class="badge-count">Not Set</span>
+          </div>
+          <p class="pin-helper">PIN hanya dibutuhkan saat Delete transaksi.</p>
+
+          <form id="pin-form" class="pin-form" novalidate>
+            <label class="field">
+              <span>Create PIN (6 digits)</span>
+              <input id="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••" />
+            </label>
+            <label class="field">
+              <span>Confirm PIN</span>
+              <input id="pin-confirm-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••" />
+            </label>
+            <p id="pin-feedback" class="form-feedback" aria-live="polite"></p>
+            <button id="pin-save-btn" type="submit" class="button button--primary">Save PIN</button>
+          </form>
+        </section>
+      </aside>
     </main>
+  </div>
+
+  <div id="pin-modal" class="pin-modal" hidden>
+    <div id="pin-modal-backdrop" class="pin-modal-backdrop"></div>
+    <div class="pin-modal-card">
+      <h3 id="pin-modal-title">PIN Verification</h3>
+      <p id="pin-modal-desc" class="pin-modal-desc">Masukkan PIN untuk melanjutkan.</p>
+      <input id="pin-modal-input" type="password" inputmode="numeric" maxlength="6" placeholder="Enter PIN" />
+      <p id="pin-modal-feedback" class="form-feedback" aria-live="polite"></p>
+      <div class="pin-modal-actions">
+        <button id="pin-modal-cancel-btn" type="button" class="button button--ghost">Cancel</button>
+        <button id="pin-modal-confirm-btn" type="button" class="button button--primary">Confirm</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>

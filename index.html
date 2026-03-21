@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="google-client-id" content="" />
-  <title>MoneyTracking | Login</title>
+  <title>Lingz99 Finance | Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -12,89 +11,43 @@
     rel="stylesheet"
   />
   <link rel="stylesheet" href="./login.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script defer src="./login.js"></script>
+  <script type="module" src="./login.js?v=20260322-2"></script>
 </head>
 <body>
-  <div class="auth-bg"></div>
+  <div class="bg-gradient" aria-hidden="true"></div>
+  <div class="bg-blob bg-blob--left" aria-hidden="true"></div>
+  <div class="bg-blob bg-blob--right" aria-hidden="true"></div>
 
-  <main class="auth-shell">
-    <section class="auth-grid">
-      <div class="auth-left">
-        <article class="login-card">
-          <div class="brand">
-            <span class="brand-badge">MT</span>
-            <p>MoneyTracking</p>
-          </div>
+  <main class="login-page" role="main">
+    <figure class="illustration-frame" aria-hidden="true">
+      <img
+        class="illustration-image"
+        src="/assets/finance.png"
+        data-fallback="./assets/finance.png"
+        alt="Finance illustration"
+        loading="eager"
+      />
+    </figure>
 
-          <h1>Welcome Back 👋</h1>
-          <p class="subtitle">Track your money smarter</p>
+    <h1 class="app-title">Lingz99 Finance</h1>
+    <p class="app-subtitle">Tracking ur Money for the Better Future</p>
 
-          <div class="button-wrap">
-            <button id="google-login-btn" type="button" class="google-btn">
-              <span id="google-spinner" class="spinner" aria-hidden="true"></span>
-              <svg class="google-logo" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.4 5.4 2.4 13.3l7.9 6.1C12.1 13.6 17.5 9.5 24 9.5z"></path>
-                <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-2.8-.4-4.1H24v7.7h12.8c-.3 1.9-1.9 4.8-5.4 6.7l8.3 6.4c4.8-4.4 7.6-10.9 7.6-18.7z"></path>
-                <path fill="#FBBC05" d="M10.3 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C.9 16.8 0 20.3 0 24s.9 7.2 2.4 10.7l7.9-6.1z"></path>
-                <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-8.3-6.4c-2.2 1.6-5.1 2.7-7.6 2.7-6.5 0-11.9-4.1-13.8-9.9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"></path>
-              </svg>
-              <span id="google-btn-text">Continue with Google</span>
-            </button>
-          </div>
+    <section class="login-card" aria-label="Login Card">
+      <h2 class="card-title">Welcome👋</h2>
+      <p class="card-subtitle">Secure login powered by Google</p>
 
-          <p class="helper-text">Secure login powered by Google</p>
-          <p id="login-status" class="status-text" aria-live="polite"></p>
-
-          <div class="gis-config">
-            <button id="toggle-config-btn" type="button" class="config-toggle">Set Google Client ID</button>
-            <div id="config-panel" class="config-panel" hidden>
-              <label for="client-id-input">Google Client ID</label>
-              <input
-                id="client-id-input"
-                type="text"
-                placeholder="1234567890-xxxxx.apps.googleusercontent.com"
-                autocomplete="off"
-              />
-              <div class="config-actions">
-                <button id="save-client-id-btn" type="button" class="config-btn config-btn--primary">Save</button>
-                <button id="clear-client-id-btn" type="button" class="config-btn">Clear</button>
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <div class="auth-right">
-        <div class="illustration-wrap">
-          <div class="finance-card finance-card--top">
-            <p class="label">Balance</p>
-            <p class="value">Rp 12.450.000</p>
-            <p class="trend trend--up">+4.2% this month</p>
-          </div>
-
-          <div class="character" aria-hidden="true">
-            <div class="character-head"></div>
-            <div class="character-body"></div>
-            <div class="character-laptop">
-              <span>●</span>
-            </div>
-          </div>
-
-          <div class="finance-card finance-card--bottom">
-            <p class="label">Security</p>
-            <p class="value">Two-step protection</p>
-            <div class="shield">🔒</div>
-          </div>
-
-          <div class="chart-bars" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      </div>
+      <button id="googleLogin" type="button" class="google-button">
+        <span class="google-button__icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.4 5.4 2.4 13.3l7.9 6.1C12.1 13.6 17.5 9.5 24 9.5z"></path>
+            <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-2.8-.4-4.1H24v7.7h12.8c-.3 1.9-1.9 4.8-5.4 6.7l8.3 6.4c4.8-4.4 7.6-10.9 7.6-18.7z"></path>
+            <path fill="#FBBC05" d="M10.3 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C.9 16.8 0 20.3 0 24s.9 7.2 2.4 10.7l7.9-6.1z"></path>
+            <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-8.3-6.4c-2.2 1.6-5.1 2.7-7.6 2.7-6.5 0-11.9-4.1-13.8-9.9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"></path>
+          </svg>
+        </span>
+        <span id="googleButtonText">Continue with Google</span>
+      </button>
+      <p id="loginStatus" class="status-message" aria-live="polite"></p>
     </section>
   </main>
 </body>

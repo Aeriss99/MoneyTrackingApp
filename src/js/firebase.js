@@ -1,21 +1,27 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth,
   GoogleAuthProvider,
+  browserLocalPersistence,
+  getAuth,
   onAuthStateChanged,
+  setPersistence,
   signInWithPopup,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore,
+  Timestamp,
   collection,
-  addDoc,
   deleteDoc,
   doc,
-  getDocs,
+  getFirestore,
+  limit,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
+  updateDoc,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -25,27 +31,39 @@ const firebaseConfig = {
   storageBucket: "moneytrackingapp-6c94a.firebasestorage.app",
   messagingSenderId: "826077908631",
   appId: "1:826077908631:web:54be252edbdc817016e3d2",
-  measurementId: "G-EFD7ZTC929"
+  measurementId: "G-EFD7ZTC929",
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: "select_account" });
+provider.addScope("email");
+provider.addScope("profile");
+
+const authPersistencePromise = setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Failed setting auth persistence:", error);
+});
 
 export {
+  Timestamp,
   auth,
-  provider,
-  db,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
+  authPersistencePromise,
   collection,
-  addDoc,
+  db,
   deleteDoc,
   doc,
-  getDocs,
+  limit,
+  onAuthStateChanged,
+  onSnapshot,
   orderBy,
+  provider,
   query,
   serverTimestamp,
+  setDoc,
+  signInWithPopup,
+  signOut,
+  updateDoc,
+  writeBatch,
 };
