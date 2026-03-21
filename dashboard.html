@@ -10,8 +10,9 @@
     href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap"
     rel="stylesheet"
   />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="./styles.css" />
-  <script type="module" src="./dashboard.js?v=20260322-1"></script>
+  <script type="module" src="./dashboard.js?v=20260322-2"></script>
 </head>
 <body>
   <div class="bg-orb bg-orb--top"></div>
@@ -70,21 +71,145 @@
           </article>
         </section>
 
+        <section class="summary-grid summary-grid--extra" aria-label="Monthly analytics summary">
+          <article class="card summary-card">
+            <p class="summary-label">Monthly Income</p>
+            <p id="summary-monthly-income" class="summary-value summary-value--income">Rp0</p>
+          </article>
+          <article class="card summary-card">
+            <p class="summary-label">Monthly Expense</p>
+            <p id="summary-monthly-expense" class="summary-value summary-value--expense">Rp0</p>
+          </article>
+          <article class="card summary-card">
+            <p class="summary-label">Today Expense</p>
+            <p id="summary-today-expense" class="summary-value summary-value--expense">Rp0</p>
+          </article>
+          <article class="card summary-card">
+            <p class="summary-label">Remaining Budget</p>
+            <p id="summary-remaining-budget" class="summary-value">Rp0</p>
+          </article>
+        </section>
+
+        <section class="card budget-panel" aria-label="Budget and insights">
+          <div class="panel-head">
+            <h2>Monthly Budget</h2>
+          </div>
+
+          <div class="budget-controls">
+            <label class="field field--budget">
+              <span>Set Monthly Budget</span>
+              <input id="budget-input" type="text" inputmode="numeric" value="Rp " />
+            </label>
+            <button id="budget-save-btn" type="button" class="button button--primary">Save Budget</button>
+          </div>
+
+          <p id="budget-feedback" class="form-feedback" aria-live="polite"></p>
+
+          <div class="budget-progress">
+            <div class="budget-progress-head">
+              <p>Usage Progress</p>
+              <p id="budget-progress-value">0%</p>
+            </div>
+            <div class="budget-progress-track">
+              <span id="budget-progress-bar" class="budget-progress-bar"></span>
+            </div>
+          </div>
+
+          <div class="insight-box">
+            <p class="summary-label">Smart Insight</p>
+            <p id="insight-message" class="insight-text">Add more transactions to get insights.</p>
+          </div>
+        </section>
+
+        <section class="card filter-panel" aria-label="Transaction filters">
+          <div class="panel-head">
+            <h2>Filters</h2>
+            <button id="filter-reset-btn" type="button" class="button button--ghost">Reset</button>
+          </div>
+          <div class="filter-grid">
+            <label class="field">
+              <span>Date From</span>
+              <input id="filter-date-from" type="date" />
+            </label>
+            <label class="field">
+              <span>Date To</span>
+              <input id="filter-date-to" type="date" />
+            </label>
+            <label class="field">
+              <span>Category</span>
+              <select id="filter-category">
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Type</span>
+              <select id="filter-type">
+                <option value="all">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="card charts-panel" aria-label="Expense analytics charts">
+          <div class="panel-head">
+            <h2>Expense Analytics</h2>
+          </div>
+          <div class="charts-grid">
+            <article class="chart-card">
+              <h3>Expense by Category</h3>
+              <div class="chart-canvas-wrap">
+                <canvas id="expense-category-chart"></canvas>
+              </div>
+              <p id="expense-category-empty" class="chart-empty" hidden>No data available</p>
+            </article>
+            <article class="chart-card">
+              <h3>Expense per Day (Current Month)</h3>
+              <div class="chart-canvas-wrap">
+                <canvas id="expense-daily-chart"></canvas>
+              </div>
+              <p id="expense-daily-empty" class="chart-empty" hidden>No data available</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card list-panel" aria-label="Recent transactions list">
+          <div class="panel-head">
+            <h2>Recent Transactions</h2>
+            <span id="recent-count-badge" class="badge-count">0 items</span>
+          </div>
+          <ul id="recent-transaction-list" class="transaction-list"></ul>
+          <div id="recent-transactions-empty" class="empty-state" hidden>
+            <div class="empty-icon" aria-hidden="true">🧾</div>
+            <h3>No transactions yet</h3>
+            <p>Your latest transactions will show here.</p>
+            <button id="recent-add-btn" type="button" class="button button--primary">Add Transaction</button>
+          </div>
+        </section>
+
         <section class="card list-panel" aria-label="Transactions list">
           <div class="panel-head">
-            <h2>Transactions</h2>
-            <span id="transaction-count-badge" class="badge-count">0 items</span>
+            <h2>Full Transactions</h2>
+            <div class="panel-head-actions">
+              <span id="transaction-count-badge" class="badge-count">0 items</span>
+              <button id="toggle-full-transactions-btn" type="button" class="button button--ghost">Show Full List</button>
+            </div>
           </div>
 
-          <div id="transactions-loading" class="inline-loading" hidden>
-            <span>Syncing transactions...</span>
-          </div>
+          <div id="full-transactions-body" hidden>
+            <div id="transactions-loading" class="inline-loading" hidden>
+              <span>Syncing transactions...</span>
+            </div>
 
-          <ul id="transaction-list" class="transaction-list"></ul>
+            <ul id="transaction-list" class="transaction-list"></ul>
 
-          <div id="transactions-empty" class="empty-state" hidden>
-            <h3 id="empty-title">No transactions yet</h3>
-            <p id="empty-description">Start by adding your first income or expense.</p>
+            <div id="transactions-empty" class="empty-state" hidden>
+              <div class="empty-icon" aria-hidden="true">📊</div>
+              <h3 id="empty-title">No transactions yet</h3>
+              <p id="empty-description">Start by adding your first income or expense.</p>
+              <button id="empty-add-btn" type="button" class="button button--primary">Add Transaction</button>
+            </div>
           </div>
         </section>
 

@@ -42,6 +42,9 @@ const CATEGORY_COLOR_MAP = {
   "Other Expense": "#5b6c8e",
 };
 
+const LOCAL_STORAGE_BUDGET_KEY = "monthlyBudget";
+const RECENT_TRANSACTIONS_LIMIT = 5;
+
 const elements = {
   todayDate: document.getElementById("today-date"),
   globalSearch: document.getElementById("global-search"),
@@ -53,12 +56,38 @@ const elements = {
   summaryIncome: document.getElementById("summary-income"),
   summaryExpense: document.getElementById("summary-expense"),
   summaryCount: document.getElementById("summary-count"),
+  summaryMonthlyIncome: document.getElementById("summary-monthly-income"),
+  summaryMonthlyExpense: document.getElementById("summary-monthly-expense"),
+  summaryTodayExpense: document.getElementById("summary-today-expense"),
+  summaryRemainingBudget: document.getElementById("summary-remaining-budget"),
+  budgetInput: document.getElementById("budget-input"),
+  budgetSaveButton: document.getElementById("budget-save-btn"),
+  budgetFeedback: document.getElementById("budget-feedback"),
+  budgetProgressValue: document.getElementById("budget-progress-value"),
+  budgetProgressBar: document.getElementById("budget-progress-bar"),
+  insightMessage: document.getElementById("insight-message"),
+  filterDateFrom: document.getElementById("filter-date-from"),
+  filterDateTo: document.getElementById("filter-date-to"),
+  filterCategory: document.getElementById("filter-category"),
+  filterType: document.getElementById("filter-type"),
+  filterResetButton: document.getElementById("filter-reset-btn"),
+  expenseCategoryChartCanvas: document.getElementById("expense-category-chart"),
+  expenseCategoryEmpty: document.getElementById("expense-category-empty"),
+  expenseDailyChartCanvas: document.getElementById("expense-daily-chart"),
+  expenseDailyEmpty: document.getElementById("expense-daily-empty"),
+  recentCountBadge: document.getElementById("recent-count-badge"),
+  recentTransactionList: document.getElementById("recent-transaction-list"),
+  recentTransactionsEmpty: document.getElementById("recent-transactions-empty"),
+  recentAddButton: document.getElementById("recent-add-btn"),
   transactionCountBadge: document.getElementById("transaction-count-badge"),
+  toggleFullTransactionsButton: document.getElementById("toggle-full-transactions-btn"),
+  fullTransactionsBody: document.getElementById("full-transactions-body"),
   transactionsLoading: document.getElementById("transactions-loading"),
   transactionList: document.getElementById("transaction-list"),
   transactionsEmpty: document.getElementById("transactions-empty"),
   emptyTitle: document.getElementById("empty-title"),
   emptyDescription: document.getElementById("empty-description"),
+  emptyAddButton: document.getElementById("empty-add-btn"),
   deleteHistoryLoading: document.getElementById("delete-history-loading"),
   deleteHistoryList: document.getElementById("delete-history-list"),
   deleteHistoryEmpty: document.getElementById("delete-history-empty"),
@@ -105,6 +134,15 @@ const state = {
   isSaving: false,
   isPinSaving: false,
   isPinChecking: false,
+  isBudgetSaving: false,
+  showFullTransactions: false,
+  monthlyBudget: 0,
+  filters: {
+    dateFrom: "",
+    dateTo: "",
+    category: "all",
+    type: "all",
+  },
   deletingIds: new Set(),
   authResolved: false,
   unsubscribeTransactions: null,
@@ -115,16 +153,22 @@ const state = {
   dateTickTimeoutId: null,
   dateTickIntervalId: null,
   secureIntent: null,
+  expenseCategoryChart: null,
+  expenseDailyChart: null,
 };
 
 initializeDashboard();
 
 function initializeDashboard() {
   hideProfileSecuritySection();
+  state.monthlyBudget = loadMonthlyBudget();
   renderTodayDate();
   elements.dateInput.value = toDateInputValue(new Date());
   syncCategoryOptions(elements.typeInput.value);
   normalizeRupiahInputElement(elements.amountInput);
+  initializeBudgetInput();
+  renderBudgetFeedback("", "");
+  renderFullTransactionsVisibility();
   bindEvents();
   startTodayAutoUpdate();
   applySearchFilter();
@@ -148,10 +192,23 @@ function bindEvents() {
   elements.amountInput.addEventListener("input", handleAmountInput);
   elements.amountInput.addEventListener("focus", handleAmountFocus);
   elements.transactionList.addEventListener("click", handleTransactionActions);
+  elements.recentTransactionList?.addEventListener("click", handleTransactionActions);
   elements.pinForm.addEventListener("submit", handlePinFormSubmit);
   elements.pinModalCancelButton.addEventListener("click", closePinModal);
   elements.pinModalConfirmButton.addEventListener("click", confirmPinModal);
   elements.pinModalBackdrop.addEventListener("click", closePinModal);
+  elements.budgetInput?.addEventListener("keydown", handleAmountKeydown);
+  elements.budgetInput?.addEventListener("input", handleBudgetInput);
+  elements.budgetInput?.addEventListener("focus", handleBudgetFocus);
+  elements.budgetSaveButton?.addEventListener("click", handleBudgetSave);
+  elements.filterDateFrom?.addEventListener("input", handleFilterInputChange);
+  elements.filterDateTo?.addEventListener("input", handleFilterInputChange);
+  elements.filterCategory?.addEventListener("change", handleFilterInputChange);
+  elements.filterType?.addEventListener("change", handleFilterInputChange);
+  elements.filterResetButton?.addEventListener("click", handleFilterReset);
+  elements.toggleFullTransactionsButton?.addEventListener("click", handleToggleFullTransactions);
+  elements.emptyAddButton?.addEventListener("click", focusTransactionForm);
+  elements.recentAddButton?.addEventListener("click", focusTransactionForm);
   document.addEventListener("visibilitychange", handleVisibilityChange);
 }
 
@@ -226,6 +283,7 @@ function cleanupSubscriptions() {
   state.unsubscribeTransactions = null;
   state.unsubscribeDeleteHistory = null;
   state.unsubscribeSecurityPin = null;
+  destroyCharts();
 }
 
 function resetAllState() {
@@ -234,7 +292,19 @@ function resetAllState() {
   state.deleteHistory = [];
   state.pinHash = "";
   state.hasPin = false;
+  state.searchKeyword = "";
+  state.showFullTransactions = false;
+  state.filters = {
+    dateFrom: "",
+    dateTo: "",
+    category: "all",
+    type: "all",
+  };
   hideProfileSecuritySection();
+  if (elements.globalSearch) elements.globalSearch.value = "";
+  renderFullTransactionsVisibility();
+  resetFilterControls();
+  destroyCharts();
 }
 
 function resetPinStateForUserSwitch() {
@@ -266,6 +336,7 @@ function subscribeToUserTransactions(userId) {
     userId,
     (transactions) => {
       state.transactions = sortTransactions(transactions);
+      syncFilterCategoryOptions();
       applySearchFilter();
       state.isTransactionsLoading = false;
       renderAll();
@@ -322,26 +393,102 @@ function subscribeToSecurityPinCollection(userId) {
 function handleSearchInput(event) {
   state.searchKeyword = event.target.value.trim();
   applySearchFilter();
-  renderTransactionsSection();
+  renderAll();
 }
 
 function applySearchFilter() {
   const keyword = state.searchKeyword.toLowerCase();
-
-  if (!keyword) {
-    state.filteredTransactions = [...state.transactions];
-    return;
-  }
-
   state.filteredTransactions = state.transactions.filter((transaction) => {
-    const searchable = `${transaction.description} ${transaction.category} ${transaction.type}`.toLowerCase();
+    if (!transactionMatchesFilters(transaction)) return false;
+    if (!keyword) return true;
+    const searchable = `${transaction.description || ""} ${transaction.category || ""} ${transaction.type || ""}`.toLowerCase();
     return searchable.includes(keyword);
   });
 }
 
+function transactionMatchesFilters(transaction) {
+  if (!transaction) return false;
+
+  const { dateFrom, dateTo, category, type } = state.filters;
+  const txDate = transaction.date instanceof Date ? transaction.date : new Date(transaction.date || 0);
+  const txDateKey = Number.isNaN(txDate.getTime()) ? "" : toDateInputValue(txDate);
+
+  if (dateFrom && txDateKey && txDateKey < dateFrom) return false;
+  if (dateTo && txDateKey && txDateKey > dateTo) return false;
+  if (dateFrom && !txDateKey) return false;
+  if (dateTo && !txDateKey) return false;
+  if (category && category !== "all" && String(transaction.category || "") !== category) return false;
+  if (type && type !== "all" && String(transaction.type || "") !== type) return false;
+
+  return true;
+}
+
+function handleFilterInputChange() {
+  state.filters.dateFrom = String(elements.filterDateFrom?.value || "").trim();
+  state.filters.dateTo = String(elements.filterDateTo?.value || "").trim();
+  state.filters.category = String(elements.filterCategory?.value || "all");
+  state.filters.type = String(elements.filterType?.value || "all");
+  applySearchFilter();
+  renderAll();
+}
+
+function handleFilterReset() {
+  state.filters = {
+    dateFrom: "",
+    dateTo: "",
+    category: "all",
+    type: "all",
+  };
+  resetFilterControls();
+  applySearchFilter();
+  renderAll();
+}
+
+function resetFilterControls() {
+  if (elements.filterDateFrom) elements.filterDateFrom.value = "";
+  if (elements.filterDateTo) elements.filterDateTo.value = "";
+  if (elements.filterCategory) elements.filterCategory.value = "all";
+  if (elements.filterType) elements.filterType.value = "all";
+}
+
+function syncFilterCategoryOptions() {
+  if (!elements.filterCategory) return;
+
+  const selected = state.filters.category || "all";
+  const categories = Array.from(
+    new Set(
+      state.transactions
+        .map((item) => String(item?.category || "").trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+
+  elements.filterCategory.innerHTML = "";
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All";
+  elements.filterCategory.appendChild(allOption);
+
+  categories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    elements.filterCategory.appendChild(option);
+  });
+
+  const hasSelection = categories.includes(selected);
+  elements.filterCategory.value = hasSelection ? selected : "all";
+  state.filters.category = elements.filterCategory.value;
+}
+
 function renderAll() {
+  renderFullTransactionsVisibility();
   renderSummaryCards();
+  renderBudgetSection();
+  renderInsightSection();
+  renderRecentTransactionsSection();
   renderTransactionsSection();
+  renderChartsSection();
   renderDeleteHistorySection();
   updateSubmitState();
 }
@@ -360,29 +507,35 @@ function renderUserIdentity() {
 }
 
 function renderSummaryCards() {
-  const balance = computeCurrentBalance();
-  const income = state.transactions
-    .filter((item) => item.type === "income")
-    .reduce((sum, item) => sum + item.amount, 0);
-  const expense = state.transactions
-    .filter((item) => item.type === "expense")
-    .reduce((sum, item) => sum + item.amount, 0);
+  const stats = calculateFinancialStats();
 
-  elements.summaryIncome.textContent = formatCurrency(income);
-  elements.summaryExpense.textContent = formatCurrency(expense);
-  elements.summaryBalance.textContent = formatCurrency(balance);
-  elements.summaryCount.textContent = String(state.transactions.length);
+  if (elements.summaryIncome) elements.summaryIncome.textContent = formatCurrency(stats.totalIncome);
+  if (elements.summaryExpense) elements.summaryExpense.textContent = formatCurrency(stats.totalExpense);
+  if (elements.summaryBalance) elements.summaryBalance.textContent = formatCurrency(stats.balance);
+  if (elements.summaryCount) elements.summaryCount.textContent = String(stats.transactionCount);
+  if (elements.summaryMonthlyIncome) elements.summaryMonthlyIncome.textContent = formatCurrency(stats.monthlyIncome);
+  if (elements.summaryMonthlyExpense) elements.summaryMonthlyExpense.textContent = formatCurrency(stats.monthlyExpense);
+  if (elements.summaryTodayExpense) elements.summaryTodayExpense.textContent = formatCurrency(stats.todayExpense);
+  if (elements.summaryRemainingBudget) {
+    elements.summaryRemainingBudget.textContent = formatCurrency(stats.remainingBudget);
+    elements.summaryRemainingBudget.classList.toggle("summary-value--expense", stats.remainingBudget < 0);
+    elements.summaryRemainingBudget.classList.toggle("summary-value--income", stats.remainingBudget >= 0);
+  }
 }
 
 function renderTransactionsSection() {
-  elements.transactionsLoading.hidden = !state.isTransactionsLoading;
+  if (!elements.transactionList) return;
+
+  if (elements.transactionsLoading) elements.transactionsLoading.hidden = !state.isTransactionsLoading;
   elements.transactionList.innerHTML = "";
 
-  const visibleItems = state.filteredTransactions;
-  elements.transactionCountBadge.textContent = `${visibleItems.length} item${visibleItems.length === 1 ? "" : "s"}`;
+  const visibleItems = Array.isArray(state.filteredTransactions) ? state.filteredTransactions : [];
+  if (elements.transactionCountBadge) {
+    elements.transactionCountBadge.textContent = `${visibleItems.length} item${visibleItems.length === 1 ? "" : "s"}`;
+  }
 
   if (state.isTransactionsLoading) {
-    elements.transactionsEmpty.hidden = true;
+    if (elements.transactionsEmpty) elements.transactionsEmpty.hidden = true;
     return;
   }
 
@@ -391,60 +544,190 @@ function renderTransactionsSection() {
     return;
   }
 
-  elements.transactionsEmpty.hidden = true;
+  if (elements.transactionsEmpty) elements.transactionsEmpty.hidden = true;
   const fragment = document.createDocumentFragment();
   const keyword = state.searchKeyword;
 
   visibleItems.forEach((transaction) => {
-    const listItem = document.createElement("li");
-    const isEditing = state.editingId === transaction.id;
-    listItem.className = `transaction-item${isEditing ? " transaction-item--editing" : ""}`;
-    listItem.dataset.id = transaction.id;
-
-    const typeLabel = transaction.type === "income" ? "Income" : "Expense";
-    const categoryColor = getCategoryColor(transaction.category);
-    const isDeleting = state.deletingIds.has(transaction.id);
-
-    listItem.innerHTML = `
-      <div class="transaction-main">
-        <p class="transaction-title">${highlightMatch(transaction.description, keyword)}</p>
-        <p class="transaction-note">${escapeHtml(transaction.note || "No note")}</p>
-        <div class="transaction-badges">
-          <span class="badge ${transaction.type === "income" ? "badge--income" : "badge--expense"}">${highlightMatch(typeLabel, keyword)}</span>
-          <span class="badge badge--category" style="background:${categoryColor.bg}; color:${categoryColor.text};">${highlightMatch(transaction.category, keyword)}</span>
-        </div>
-      </div>
-      <div class="transaction-amount-wrap">
-        <p class="transaction-amount ${transaction.type === "income" ? "transaction-amount--income" : "transaction-amount--expense"}">
-          ${transaction.type === "income" ? "+" : "-"} ${formatCurrency(transaction.amount)}
-        </p>
-        <p class="transaction-date">${formatDisplayDate(transaction.date)}</p>
-      </div>
-      <div class="transaction-actions">
-        <button type="button" class="action-btn" data-action="edit" data-id="${transaction.id}" ${isDeleting ? "disabled" : ""}>Edit</button>
-        <button type="button" class="action-btn action-btn--danger" data-action="delete" data-id="${transaction.id}" ${isDeleting ? "disabled" : ""}>
-          ${isDeleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    `;
-
+    const listItem = createTransactionListItem(transaction, keyword);
     fragment.appendChild(listItem);
   });
 
   elements.transactionList.appendChild(fragment);
 }
 
-function renderEmptyState() {
-  elements.transactionsEmpty.hidden = false;
+function createTransactionListItem(transaction, keyword = "") {
+  const listItem = document.createElement("li");
+  const isEditing = state.editingId === transaction.id;
+  listItem.className = `transaction-item${isEditing ? " transaction-item--editing" : ""}`;
+  listItem.dataset.id = transaction.id;
 
-  if (state.transactions.length === 0) {
-    elements.emptyTitle.textContent = "No transactions yet";
-    elements.emptyDescription.textContent = "Add your first income or expense to get started.";
+  const typeLabel = transaction.type === "income" ? "Income" : "Expense";
+  const categoryValue = String(transaction.category || "Uncategorized");
+  const categoryColor = getCategoryColor(categoryValue);
+  const isDeleting = state.deletingIds.has(transaction.id);
+  const descriptionValue = String(transaction.description || "No description");
+  const noteValue = String(transaction.note || "No note");
+
+  listItem.innerHTML = `
+    <div class="transaction-main">
+      <p class="transaction-title">${highlightMatch(descriptionValue, keyword)}</p>
+      <p class="transaction-note">${escapeHtml(noteValue)}</p>
+      <div class="transaction-badges">
+        <span class="badge ${transaction.type === "income" ? "badge--income" : "badge--expense"}">${highlightMatch(typeLabel, keyword)}</span>
+        <span class="badge badge--category" style="background:${categoryColor.bg}; color:${categoryColor.text};">${highlightMatch(categoryValue, keyword)}</span>
+      </div>
+    </div>
+    <div class="transaction-amount-wrap">
+      <p class="transaction-amount ${transaction.type === "income" ? "transaction-amount--income" : "transaction-amount--expense"}">
+        ${transaction.type === "income" ? "+" : "-"} ${formatCurrency(Number(transaction.amount || 0))}
+      </p>
+      <p class="transaction-date">${formatDisplayDate(transaction.date)}</p>
+    </div>
+    <div class="transaction-actions">
+      <button type="button" class="action-btn" data-action="edit" data-id="${transaction.id}" ${isDeleting ? "disabled" : ""}>Edit</button>
+      <button type="button" class="action-btn action-btn--danger" data-action="delete" data-id="${transaction.id}" ${isDeleting ? "disabled" : ""}>
+        ${isDeleting ? "Deleting..." : "Delete"}
+      </button>
+    </div>
+  `;
+
+  return listItem;
+}
+
+function renderRecentTransactionsSection() {
+  if (!elements.recentTransactionList || !elements.recentCountBadge || !elements.recentTransactionsEmpty) return;
+
+  elements.recentTransactionList.innerHTML = "";
+  const visibleItems = Array.isArray(state.filteredTransactions) ? state.filteredTransactions : [];
+  const recentItems = visibleItems.slice(0, RECENT_TRANSACTIONS_LIMIT);
+  elements.recentCountBadge.textContent = `${recentItems.length} item${recentItems.length === 1 ? "" : "s"}`;
+
+  if (!recentItems.length) {
+    elements.recentTransactionsEmpty.hidden = false;
     return;
   }
 
-  elements.emptyTitle.textContent = "No transactions found";
-  elements.emptyDescription.textContent = "Try using another keyword in search.";
+  elements.recentTransactionsEmpty.hidden = true;
+  const fragment = document.createDocumentFragment();
+  const keyword = state.searchKeyword;
+  recentItems.forEach((transaction) => {
+    const listItem = createTransactionListItem(transaction, keyword);
+    fragment.appendChild(listItem);
+  });
+  elements.recentTransactionList.appendChild(fragment);
+}
+
+function renderBudgetSection() {
+  const stats = calculateFinancialStats();
+  const budget = Number(state.monthlyBudget || 0);
+  const expense = Number(stats.monthlyExpense || 0);
+  const percentage = budget > 0 ? Math.max(0, (expense / budget) * 100) : 0;
+  const clamped = Math.min(100, percentage);
+
+  if (elements.budgetProgressValue) {
+    elements.budgetProgressValue.textContent = `${Math.round(percentage)}%`;
+  }
+
+  if (elements.budgetProgressBar) {
+    elements.budgetProgressBar.style.width = `${clamped}%`;
+    elements.budgetProgressBar.classList.remove("budget-progress-bar--safe", "budget-progress-bar--warning", "budget-progress-bar--danger");
+    if (percentage > 100) {
+      elements.budgetProgressBar.classList.add("budget-progress-bar--danger");
+    } else if (percentage < 70) {
+      elements.budgetProgressBar.classList.add("budget-progress-bar--safe");
+    } else {
+      elements.budgetProgressBar.classList.add("budget-progress-bar--warning");
+    }
+  }
+}
+
+function renderInsightSection() {
+  if (!elements.insightMessage) return;
+
+  const stats = calculateFinancialStats();
+  const budget = Number(state.monthlyBudget || 0);
+  const budgetUsage = budget > 0 ? (stats.monthlyExpense / budget) * 100 : 0;
+
+  if (stats.monthlyExpense > stats.monthlyIncome) {
+    elements.insightMessage.textContent = "Warning: You are spending more than you earn";
+    return;
+  }
+
+  if (budget > 0 && budgetUsage > 70) {
+    elements.insightMessage.textContent = "You are close to your budget limit";
+    return;
+  }
+
+  if (budget > 0 && budgetUsage < 50) {
+    elements.insightMessage.textContent = "Good job, your spending is under control";
+    return;
+  }
+
+  elements.insightMessage.textContent = "Track your transactions consistently to get stronger insights.";
+}
+
+function calculateFinancialStats() {
+  const list = Array.isArray(state.transactions) ? state.transactions : [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const todayKey = toDateInputValue(now);
+  const budget = Number(state.monthlyBudget || 0);
+
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let monthlyIncome = 0;
+  let monthlyExpense = 0;
+  let todayExpense = 0;
+
+  list.forEach((transaction) => {
+    const amount = Number(transaction?.amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+
+    const type = transaction?.type === "income" ? "income" : "expense";
+    const txDate = transaction?.date instanceof Date ? transaction.date : new Date(transaction?.date || 0);
+    const isValidDate = !Number.isNaN(txDate.getTime());
+    const isCurrentMonth = isValidDate && txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+    const isToday = isValidDate && toDateInputValue(txDate) === todayKey;
+
+    if (type === "income") {
+      totalIncome += amount;
+      if (isCurrentMonth) monthlyIncome += amount;
+      return;
+    }
+
+    totalExpense += amount;
+    if (isCurrentMonth) monthlyExpense += amount;
+    if (isToday) todayExpense += amount;
+  });
+
+  return {
+    totalIncome,
+    totalExpense,
+    monthlyIncome,
+    monthlyExpense,
+    todayExpense,
+    balance: totalIncome - totalExpense,
+    remainingBudget: budget - monthlyExpense,
+    transactionCount: list.length,
+  };
+}
+
+function renderEmptyState() {
+  if (!elements.transactionsEmpty) return;
+  elements.transactionsEmpty.hidden = false;
+
+  if (state.transactions.length === 0) {
+    if (elements.emptyTitle) elements.emptyTitle.textContent = "No transactions yet";
+    if (elements.emptyDescription) elements.emptyDescription.textContent = "Add your first income or expense to get started.";
+    if (elements.emptyAddButton) elements.emptyAddButton.hidden = false;
+    return;
+  }
+
+  if (elements.emptyTitle) elements.emptyTitle.textContent = "No transactions found";
+  if (elements.emptyDescription) elements.emptyDescription.textContent = "Try adjusting search/filter settings.";
+  if (elements.emptyAddButton) elements.emptyAddButton.hidden = true;
 }
 
 function renderDeleteHistorySection() {
@@ -484,6 +767,264 @@ function renderDeleteHistorySection() {
   });
 
   elements.deleteHistoryList.appendChild(fragment);
+}
+
+function renderChartsSection() {
+  const chartLibrary = window?.Chart;
+  if (!chartLibrary) {
+    renderChartEmptyState(elements.expenseCategoryEmpty, true);
+    renderChartEmptyState(elements.expenseDailyEmpty, true);
+    destroyCharts();
+    return;
+  }
+
+  const monthlyExpenseItems = getCurrentMonthExpenseTransactions();
+  renderExpenseCategoryChart(chartLibrary, monthlyExpenseItems);
+  renderExpenseDailyChart(chartLibrary, monthlyExpenseItems);
+}
+
+function getCurrentMonthExpenseTransactions() {
+  const list = Array.isArray(state.transactions) ? state.transactions : [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  return list.filter((item) => {
+    if (!item || item.type !== "expense") return false;
+    const date = item.date instanceof Date ? item.date : new Date(item.date || 0);
+    if (Number.isNaN(date.getTime())) return false;
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  });
+}
+
+function renderExpenseCategoryChart(chartLibrary, items) {
+  if (!elements.expenseCategoryChartCanvas || !elements.expenseCategoryEmpty) return;
+
+  const categoryMap = new Map();
+  items.forEach((item) => {
+    const key = String(item.category || "Uncategorized").trim() || "Uncategorized";
+    const amount = Number(item.amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    categoryMap.set(key, (categoryMap.get(key) || 0) + amount);
+  });
+
+  const labels = Array.from(categoryMap.keys());
+  const values = Array.from(categoryMap.values());
+
+  if (!labels.length || !values.length) {
+    renderChartEmptyState(elements.expenseCategoryEmpty, true);
+    if (state.expenseCategoryChart) {
+      state.expenseCategoryChart.destroy();
+      state.expenseCategoryChart = null;
+    }
+    return;
+  }
+
+  renderChartEmptyState(elements.expenseCategoryEmpty, false);
+  if (state.expenseCategoryChart) state.expenseCategoryChart.destroy();
+
+  const colors = labels.map((label) => getCategoryColor(label).text);
+  state.expenseCategoryChart = new chartLibrary(elements.expenseCategoryChartCanvas, {
+    type: "pie",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: colors,
+          borderColor: "#ffffff",
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom",
+        },
+      },
+    },
+  });
+}
+
+function renderExpenseDailyChart(chartLibrary, items) {
+  if (!elements.expenseDailyChartCanvas || !elements.expenseDailyEmpty) return;
+
+  const dailyMap = new Map();
+  items.forEach((item) => {
+    const date = item.date instanceof Date ? item.date : new Date(item.date || 0);
+    if (Number.isNaN(date.getTime())) return;
+    const dayKey = toDateInputValue(date);
+    const amount = Number(item.amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    dailyMap.set(dayKey, (dailyMap.get(dayKey) || 0) + amount);
+  });
+
+  const sortedDays = Array.from(dailyMap.keys()).sort((a, b) => a.localeCompare(b));
+  const labels = sortedDays.map((dayKey) => {
+    const date = parseDateInput(dayKey) || new Date(dayKey);
+    return formatDisplayDate(date);
+  });
+  const values = sortedDays.map((key) => dailyMap.get(key) || 0);
+
+  if (!labels.length || !values.length) {
+    renderChartEmptyState(elements.expenseDailyEmpty, true);
+    if (state.expenseDailyChart) {
+      state.expenseDailyChart.destroy();
+      state.expenseDailyChart = null;
+    }
+    return;
+  }
+
+  renderChartEmptyState(elements.expenseDailyEmpty, false);
+  if (state.expenseDailyChart) state.expenseDailyChart.destroy();
+
+  state.expenseDailyChart = new chartLibrary(elements.expenseDailyChartCanvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Expense",
+          data: values,
+          backgroundColor: "rgba(204, 76, 95, 0.78)",
+          borderRadius: 8,
+          maxBarThickness: 26,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+    },
+  });
+}
+
+function renderChartEmptyState(targetElement, isVisible) {
+  if (!targetElement) return;
+  targetElement.hidden = !isVisible;
+}
+
+function destroyCharts() {
+  if (state.expenseCategoryChart) {
+    state.expenseCategoryChart.destroy();
+    state.expenseCategoryChart = null;
+  }
+
+  if (state.expenseDailyChart) {
+    state.expenseDailyChart.destroy();
+    state.expenseDailyChart = null;
+  }
+}
+
+function initializeBudgetInput() {
+  if (!elements.budgetInput) return;
+  const budgetDigits = sanitizeAmountDigits(String(Math.max(0, Number(state.monthlyBudget || 0))));
+  elements.budgetInput.value = formatRupiahInputByDigits(budgetDigits);
+  elements.budgetInput.dataset.raw = budgetDigits;
+}
+
+function handleBudgetInput() {
+  if (!elements.budgetInput) return;
+  normalizeRupiahInputElement(elements.budgetInput);
+}
+
+function handleBudgetFocus() {
+  if (!elements.budgetInput) return;
+  if (!elements.budgetInput.value) {
+    elements.budgetInput.value = "Rp ";
+    elements.budgetInput.dataset.raw = "";
+  }
+}
+
+async function handleBudgetSave() {
+  if (!elements.budgetInput || state.isBudgetSaving) return;
+
+  const parsedBudget = parseAmount(elements.budgetInput.value);
+  if (!Number.isFinite(parsedBudget) || parsedBudget < 0) {
+    renderBudgetFeedback("Budget value is invalid.", "error");
+    return;
+  }
+
+  state.isBudgetSaving = true;
+  if (elements.budgetSaveButton) {
+    elements.budgetSaveButton.disabled = true;
+    elements.budgetSaveButton.textContent = "Saving...";
+  }
+
+  try {
+    state.monthlyBudget = parsedBudget;
+    saveMonthlyBudget(parsedBudget);
+    initializeBudgetInput();
+    renderBudgetFeedback("Monthly budget saved.", "success");
+    renderAll();
+  } catch (error) {
+    console.error("Save budget failed:", error);
+    renderBudgetFeedback("Failed saving budget to localStorage.", "error");
+  } finally {
+    state.isBudgetSaving = false;
+    if (elements.budgetSaveButton) {
+      elements.budgetSaveButton.disabled = false;
+      elements.budgetSaveButton.textContent = "Save Budget";
+    }
+  }
+}
+
+function renderBudgetFeedback(message, tone) {
+  if (!elements.budgetFeedback) return;
+  elements.budgetFeedback.textContent = message || "";
+  elements.budgetFeedback.classList.remove("form-feedback--error", "form-feedback--success");
+  if (tone === "error") elements.budgetFeedback.classList.add("form-feedback--error");
+  if (tone === "success") elements.budgetFeedback.classList.add("form-feedback--success");
+}
+
+function loadMonthlyBudget() {
+  try {
+    if (!window?.localStorage) return 0;
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_BUDGET_KEY);
+    const parsed = Number(raw || 0);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  } catch (error) {
+    console.error("Read monthly budget failed:", error);
+    return 0;
+  }
+}
+
+function saveMonthlyBudget(value) {
+  if (!window?.localStorage) {
+    throw new Error("localStorage unavailable");
+  }
+  window.localStorage.setItem(LOCAL_STORAGE_BUDGET_KEY, String(Math.max(0, Number(value || 0))));
+}
+
+function handleToggleFullTransactions() {
+  state.showFullTransactions = !state.showFullTransactions;
+  renderFullTransactionsVisibility();
+}
+
+function renderFullTransactionsVisibility() {
+  if (!elements.fullTransactionsBody || !elements.toggleFullTransactionsButton) return;
+  elements.fullTransactionsBody.hidden = !state.showFullTransactions;
+  elements.toggleFullTransactionsButton.textContent = state.showFullTransactions ? "Hide Full List" : "Show Full List";
+}
+
+function focusTransactionForm() {
+  if (elements.descriptionInput) {
+    elements.descriptionInput.focus();
+    elements.descriptionInput.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 }
 
 function renderPinStatus() {
@@ -661,7 +1202,7 @@ function routeToProfileSecuritySetup() {
   }
 
   window.setTimeout(() => {
-    elements.pinInput.focus();
+    if (elements.pinInput) elements.pinInput.focus();
   }, 180);
 }
 
@@ -827,6 +1368,7 @@ function startEditById(transactionId) {
   setFormFeedback("Editing transaction.", "success");
   updateSubmitState();
   renderTransactionsSection();
+  renderRecentTransactionsSection();
   elements.descriptionInput.focus();
 }
 
@@ -839,6 +1381,7 @@ async function confirmAndDeleteById(transactionId) {
 
   state.deletingIds.add(transactionId);
   renderTransactionsSection();
+  renderRecentTransactionsSection();
 
   try {
     await deleteTransaction(state.user.uid, transaction);
@@ -857,6 +1400,7 @@ async function confirmAndDeleteById(transactionId) {
   } finally {
     state.deletingIds.delete(transactionId);
     renderTransactionsSection();
+    renderRecentTransactionsSection();
   }
 }
 
@@ -870,6 +1414,7 @@ function enterCreateMode() {
   resetForm();
   setFormFeedback("", "");
   renderTransactionsSection();
+  renderRecentTransactionsSection();
 }
 
 function resetForm() {
