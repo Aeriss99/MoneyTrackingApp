@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MoneyTracking Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./styles.css" />
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="bg-orb bg-orb--top"></div>
+  <div class="bg-orb bg-orb--bottom"></div>
+
+  <div class="app">
+    <header class="card navbar">
+      <div class="brand">
+        <span class="brand-badge" aria-hidden="true">MT</span>
+        <div>
+          <p class="eyebrow">Personal Finance</p>
+          <h1>Money Tracking Dashboard</h1>
+        </div>
+      </div>
+      <div class="meta">
+        <p class="meta-label">Today</p>
+        <p id="today-date" class="meta-value"></p>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="summary-grid" aria-label="Balance summary">
+        <article class="card summary-card">
+          <p class="summary-label">Total Balance</p>
+          <p id="balance-value" class="summary-value">Rp0</p>
+        </article>
+        <article class="card summary-card">
+          <p class="summary-label">Income</p>
+          <p id="income-value" class="summary-value summary-value--income">Rp0</p>
+        </article>
+        <article class="card summary-card">
+          <p class="summary-label">Expense</p>
+          <p id="expense-value" class="summary-value summary-value--expense">Rp0</p>
+        </article>
+        <article class="card summary-card">
+          <p class="summary-label">Transactions</p>
+          <p id="count-value" class="summary-value">0</p>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <section class="card panel transactions-panel" aria-label="Transaction list">
+          <div class="panel-head">
+            <div>
+              <h2>Transactions</h2>
+              <p id="transaction-count" class="panel-subtitle">0 records</p>
+            </div>
+            <button id="add-sample-btn" type="button" class="button button--ghost">Add Sample</button>
+          </div>
+
+          <div class="filters">
+            <label class="field field--compact">
+              <span>Search</span>
+              <input id="search-input" type="search" placeholder="Description, category, note" />
+            </label>
+            <label class="field field--compact">
+              <span>Type</span>
+              <select id="filter-type">
+                <option value="all">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </label>
+            <button id="clear-filters-btn" type="button" class="button button--ghost">Clear</button>
+          </div>
+
+          <ul id="transaction-list" class="transaction-list" aria-live="polite"></ul>
+
+          <div id="empty-state" class="empty-state" hidden>
+            <p class="empty-title">No transactions yet</p>
+            <p class="empty-description">Start by adding your first income or expense.</p>
+            <button id="empty-action-btn" type="button" class="button button--primary">Add First Transaction</button>
+          </div>
+        </section>
+
+        <aside class="card panel form-panel" aria-label="Transaction form">
+          <div class="panel-head">
+            <div>
+              <p id="form-mode" class="form-mode">CREATE</p>
+              <h2 id="form-title">Add Transaction</h2>
+            </div>
+          </div>
+
+          <form id="transaction-form" class="form" novalidate>
+            <input id="transaction-id" type="hidden" />
+
+            <label class="field">
+              <span>Description</span>
+              <input id="description-input" type="text" maxlength="80" placeholder="Salary, groceries, internet bill" required />
+            </label>
+
+            <label class="field">
+              <span>Amount (IDR)</span>
+              <input id="amount-input" type="text" inputmode="numeric" placeholder="250000" required />
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Type</span>
+                <select id="type-input">
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Category</span>
+                <select id="category-input"></select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Date</span>
+              <input id="date-input" type="date" required />
+            </label>
+
+            <label class="field">
+              <span>Note (Optional)</span>
+              <textarea id="note-input" rows="3" maxlength="140" placeholder="Any details you want to remember"></textarea>
+            </label>
+
+            <p id="form-feedback" class="form-feedback" aria-live="polite"></p>
+
+            <div class="form-actions">
+              <button id="cancel-edit-btn" type="button" class="button button--ghost" hidden>Cancel Edit</button>
+              <button id="submit-btn" type="submit" class="button button--primary">Add Transaction</button>
+            </div>
+          </form>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast-root" class="toast-root" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
