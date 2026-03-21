@@ -11,8 +11,8 @@
     rel="stylesheet"
   />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="./styles.css" />
-  <script type="module" src="./dashboard.js?v=20260322-2"></script>
+  <link rel="stylesheet" href="./styles.css?v=20260322-3" />
+  <script type="module" src="./dashboard.js?v=20260322-3"></script>
 </head>
 <body>
   <div class="bg-orb bg-orb--top"></div>
@@ -23,7 +23,7 @@
       <div class="topbar-brand">
         <span class="brand-badge">MT</span>
         <div>
-          <p class="eyebrow">Fintech Workspace</p>
+          <p class="eyebrow">Fintech Workspace Lingz99</p>
           <h1>MoneyTracking</h1>
         </div>
       </div>
@@ -49,6 +49,25 @@
         </div>
       </div>
     </header>
+
+    <section class="card hero-balance" aria-label="Total balance hero">
+      <p class="hero-label">Total Balance</p>
+      <p id="hero-balance-value" class="hero-balance-value">Rp0</p>
+      <div class="hero-stats">
+        <article class="hero-stat">
+          <p class="hero-stat-label">Monthly Income</p>
+          <p id="hero-monthly-income" class="hero-stat-value hero-stat-value--income">Rp0</p>
+        </article>
+        <article class="hero-stat">
+          <p class="hero-stat-label">Monthly Expense</p>
+          <p id="hero-monthly-expense" class="hero-stat-value hero-stat-value--expense">Rp0</p>
+        </article>
+        <article class="hero-stat">
+          <p class="hero-stat-label">Today Expense</p>
+          <p id="hero-today-expense" class="hero-stat-value hero-stat-value--expense">Rp0</p>
+        </article>
+      </div>
+    </section>
 
     <main class="dashboard-grid">
       <section class="main-column">
@@ -233,6 +252,10 @@
       </section>
 
       <aside class="card form-panel" aria-label="Transaction form">
+        <div class="form-panel-head-mobile">
+          <h3>Transaction Form</h3>
+          <button id="form-modal-close-btn" type="button" class="button button--ghost">Close</button>
+        </div>
         <div class="panel-head">
           <div>
             <p id="form-mode" class="form-mode">CREATE</p>
@@ -309,6 +332,9 @@
       </aside>
     </main>
   </div>
+
+  <div id="form-modal-backdrop" class="form-modal-backdrop" hidden></div>
+  <button id="fab-add-transaction" type="button" class="fab-add-transaction" aria-label="Add Transaction">+</button>
 
   <div id="pin-modal" class="pin-modal" hidden>
     <div id="pin-modal-backdrop" class="pin-modal-backdrop"></div>

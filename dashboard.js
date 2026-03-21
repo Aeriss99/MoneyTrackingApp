@@ -48,6 +48,10 @@ const RECENT_TRANSACTIONS_LIMIT = 5;
 const elements = {
   todayDate: document.getElementById("today-date"),
   globalSearch: document.getElementById("global-search"),
+  heroBalanceValue: document.getElementById("hero-balance-value"),
+  heroMonthlyIncome: document.getElementById("hero-monthly-income"),
+  heroMonthlyExpense: document.getElementById("hero-monthly-expense"),
+  heroTodayExpense: document.getElementById("hero-today-expense"),
   userPhoto: document.getElementById("user-photo"),
   userName: document.getElementById("user-name"),
   userEmail: document.getElementById("user-email"),
@@ -88,6 +92,10 @@ const elements = {
   emptyTitle: document.getElementById("empty-title"),
   emptyDescription: document.getElementById("empty-description"),
   emptyAddButton: document.getElementById("empty-add-btn"),
+  formPanel: document.querySelector(".form-panel"),
+  formModalCloseButton: document.getElementById("form-modal-close-btn"),
+  formModalBackdrop: document.getElementById("form-modal-backdrop"),
+  fabAddTransaction: document.getElementById("fab-add-transaction"),
   deleteHistoryLoading: document.getElementById("delete-history-loading"),
   deleteHistoryList: document.getElementById("delete-history-list"),
   deleteHistoryEmpty: document.getElementById("delete-history-empty"),
@@ -135,6 +143,7 @@ const state = {
   isPinSaving: false,
   isPinChecking: false,
   isBudgetSaving: false,
+  isFormPanelOpen: false,
   showFullTransactions: false,
   monthlyBudget: 0,
   filters: {
@@ -162,6 +171,7 @@ initializeDashboard();
 function initializeDashboard() {
   hideProfileSecuritySection();
   state.monthlyBudget = loadMonthlyBudget();
+  state.isFormPanelOpen = false;
   renderTodayDate();
   elements.dateInput.value = toDateInputValue(new Date());
   syncCategoryOptions(elements.typeInput.value);
@@ -169,10 +179,11 @@ function initializeDashboard() {
   initializeBudgetInput();
   renderBudgetFeedback("", "");
   renderFullTransactionsVisibility();
+  renderMobileFormVisibility();
   bindEvents();
   startTodayAutoUpdate();
   applySearchFilter();
-  renderAll();
+  updateDashboardSafe();
   renderPinStatus();
   subscribeToAuth();
   updateSubmitState();
@@ -209,6 +220,11 @@ function bindEvents() {
   elements.toggleFullTransactionsButton?.addEventListener("click", handleToggleFullTransactions);
   elements.emptyAddButton?.addEventListener("click", focusTransactionForm);
   elements.recentAddButton?.addEventListener("click", focusTransactionForm);
+  elements.fabAddTransaction?.addEventListener("click", openFormPanelMobile);
+  elements.formModalCloseButton?.addEventListener("click", closeFormPanelMobile);
+  elements.formModalBackdrop?.addEventListener("click", closeFormPanelMobile);
+  window.addEventListener("resize", handleViewportResize);
+  document.addEventListener("keydown", handleDocumentKeydown);
   document.addEventListener("visibilitychange", handleVisibilityChange);
 }
 
@@ -293,6 +309,7 @@ function resetAllState() {
   state.pinHash = "";
   state.hasPin = false;
   state.searchKeyword = "";
+  state.isFormPanelOpen = false;
   state.showFullTransactions = false;
   state.filters = {
     dateFrom: "",
@@ -303,6 +320,7 @@ function resetAllState() {
   hideProfileSecuritySection();
   if (elements.globalSearch) elements.globalSearch.value = "";
   renderFullTransactionsVisibility();
+  renderMobileFormVisibility();
   resetFilterControls();
   destroyCharts();
 }
@@ -339,7 +357,7 @@ function subscribeToUserTransactions(userId) {
       syncFilterCategoryOptions();
       applySearchFilter();
       state.isTransactionsLoading = false;
-      renderAll();
+      updateDashboardSafe();
     },
     () => {
       state.isTransactionsLoading = false;
@@ -393,7 +411,7 @@ function subscribeToSecurityPinCollection(userId) {
 function handleSearchInput(event) {
   state.searchKeyword = event.target.value.trim();
   applySearchFilter();
-  renderAll();
+  updateDashboardSafe();
 }
 
 function applySearchFilter() {
@@ -429,7 +447,7 @@ function handleFilterInputChange() {
   state.filters.category = String(elements.filterCategory?.value || "all");
   state.filters.type = String(elements.filterType?.value || "all");
   applySearchFilter();
-  renderAll();
+  updateDashboardSafe();
 }
 
 function handleFilterReset() {
@@ -441,7 +459,7 @@ function handleFilterReset() {
   };
   resetFilterControls();
   applySearchFilter();
-  renderAll();
+  updateDashboardSafe();
 }
 
 function resetFilterControls() {
@@ -493,6 +511,18 @@ function renderAll() {
   updateSubmitState();
 }
 
+function updateDashboardSafe() {
+  try {
+    if (!Array.isArray(state.transactions)) return;
+    renderAll();
+  } catch (error) {
+    console.error("Safe error:", error);
+    if (elements.toastRoot) {
+      showToast("Terjadi kendala saat update dashboard.", "error");
+    }
+  }
+}
+
 function renderUserIdentity() {
   const name = state.user?.displayName || "MoneyTracking User";
   const email = state.user?.email || "No email";
@@ -513,6 +543,10 @@ function renderSummaryCards() {
   if (elements.summaryExpense) elements.summaryExpense.textContent = formatCurrency(stats.totalExpense);
   if (elements.summaryBalance) elements.summaryBalance.textContent = formatCurrency(stats.balance);
   if (elements.summaryCount) elements.summaryCount.textContent = String(stats.transactionCount);
+  if (elements.heroBalanceValue) elements.heroBalanceValue.textContent = formatCurrency(stats.balance);
+  if (elements.heroMonthlyIncome) elements.heroMonthlyIncome.textContent = formatCurrency(stats.monthlyIncome);
+  if (elements.heroMonthlyExpense) elements.heroMonthlyExpense.textContent = formatCurrency(stats.monthlyExpense);
+  if (elements.heroTodayExpense) elements.heroTodayExpense.textContent = formatCurrency(stats.todayExpense);
   if (elements.summaryMonthlyIncome) elements.summaryMonthlyIncome.textContent = formatCurrency(stats.monthlyIncome);
   if (elements.summaryMonthlyExpense) elements.summaryMonthlyExpense.textContent = formatCurrency(stats.monthlyExpense);
   if (elements.summaryTodayExpense) elements.summaryTodayExpense.textContent = formatCurrency(stats.todayExpense);
@@ -624,21 +658,28 @@ function renderBudgetSection() {
   const expense = Number(stats.monthlyExpense || 0);
   const percentage = budget > 0 ? Math.max(0, (expense / budget) * 100) : 0;
   const clamped = Math.min(100, percentage);
+  const budgetProgressSection = elements.budgetProgressBar?.closest(".budget-progress");
 
   if (elements.budgetProgressValue) {
-    elements.budgetProgressValue.textContent = `${Math.round(percentage)}%`;
+    elements.budgetProgressValue.textContent = budget > 0 ? `${Math.round(percentage)}%` : "-";
   }
 
   if (elements.budgetProgressBar) {
     elements.budgetProgressBar.style.width = `${clamped}%`;
     elements.budgetProgressBar.classList.remove("budget-progress-bar--safe", "budget-progress-bar--warning", "budget-progress-bar--danger");
-    if (percentage > 100) {
+    if (budget <= 0) {
+      // no color state if budget has not been set
+    } else if (percentage > 100) {
       elements.budgetProgressBar.classList.add("budget-progress-bar--danger");
     } else if (percentage < 70) {
       elements.budgetProgressBar.classList.add("budget-progress-bar--safe");
     } else {
       elements.budgetProgressBar.classList.add("budget-progress-bar--warning");
     }
+  }
+
+  if (budgetProgressSection) {
+    budgetProgressSection.hidden = budget <= 0;
   }
 }
 
@@ -969,7 +1010,7 @@ async function handleBudgetSave() {
     saveMonthlyBudget(parsedBudget);
     initializeBudgetInput();
     renderBudgetFeedback("Monthly budget saved.", "success");
-    renderAll();
+    updateDashboardSafe();
   } catch (error) {
     console.error("Save budget failed:", error);
     renderBudgetFeedback("Failed saving budget to localStorage.", "error");
@@ -1009,6 +1050,47 @@ function saveMonthlyBudget(value) {
   window.localStorage.setItem(LOCAL_STORAGE_BUDGET_KEY, String(Math.max(0, Number(value || 0))));
 }
 
+function isDesktopViewport() {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
+
+function renderMobileFormVisibility() {
+  const isDesktop = isDesktopViewport();
+  const shouldOpen = !isDesktop && state.isFormPanelOpen;
+  if (elements.formPanel) {
+    elements.formPanel.classList.toggle("form-panel--open", shouldOpen);
+  }
+  if (elements.formModalBackdrop) {
+    elements.formModalBackdrop.hidden = !shouldOpen;
+  }
+  document.body.classList.toggle("no-scroll", shouldOpen);
+}
+
+function openFormPanelMobile() {
+  if (isDesktopViewport()) return;
+  state.isFormPanelOpen = true;
+  renderMobileFormVisibility();
+}
+
+function closeFormPanelMobile() {
+  if (isDesktopViewport()) return;
+  state.isFormPanelOpen = false;
+  renderMobileFormVisibility();
+}
+
+function handleViewportResize() {
+  renderMobileFormVisibility();
+}
+
+function handleDocumentKeydown(event) {
+  if (event.key !== "Escape") return;
+  if (elements.pinModal && !elements.pinModal.hidden) {
+    closePinModal();
+    return;
+  }
+  closeFormPanelMobile();
+}
+
 function handleToggleFullTransactions() {
   state.showFullTransactions = !state.showFullTransactions;
   renderFullTransactionsVisibility();
@@ -1021,9 +1103,13 @@ function renderFullTransactionsVisibility() {
 }
 
 function focusTransactionForm() {
+  openFormPanelMobile();
+  const delay = isDesktopViewport() ? 0 : 140;
   if (elements.descriptionInput) {
-    elements.descriptionInput.focus();
-    elements.descriptionInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => {
+      elements.descriptionInput.focus();
+      elements.descriptionInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, delay);
   }
 }
 
@@ -1090,7 +1176,9 @@ function computeCurrentBalance(excludedTransactionId = "") {
   }, 0);
 }
 
-function validatePayload(payload) {
+function validatePayload(payload, options = {}) {
+  const { skipBalanceCheck = false } = options;
+
   if (!payload.description || payload.description.length < 2) {
     return { valid: false, message: "Description must be at least 2 characters." };
   }
@@ -1109,6 +1197,10 @@ function validatePayload(payload) {
 
   if (!(payload.date instanceof Date) || Number.isNaN(payload.date.getTime())) {
     return { valid: false, message: "Please select a valid date." };
+  }
+
+  if (skipBalanceCheck) {
+    return { valid: true };
   }
 
   const baseBalance = computeCurrentBalance(state.editingId || "");
@@ -1145,13 +1237,15 @@ async function handleFormSubmit(event) {
       setFormFeedback("Transaction updated successfully.", "success");
       showToast("Transaction updated.", "success");
       enterCreateMode();
-      renderAll();
+      updateDashboardSafe();
+      closeFormPanelMobile();
     } else {
       await createTransaction(state.user.uid, payload);
       setFormFeedback("Transaction added successfully.", "success");
       showToast("Transaction saved.", "success");
       resetForm();
-      renderAll();
+      updateDashboardSafe();
+      closeFormPanelMobile();
     }
   } catch (error) {
     console.error("Save transaction failed:", error);
@@ -1350,6 +1444,7 @@ function setPinModalFeedback(message, tone) {
 function startEditById(transactionId) {
   const transaction = state.transactions.find((item) => item.id === transactionId);
   if (!transaction) return;
+  openFormPanelMobile();
 
   state.editingId = transaction.id;
   elements.editingId.value = transaction.id;
@@ -1369,7 +1464,10 @@ function startEditById(transactionId) {
   updateSubmitState();
   renderTransactionsSection();
   renderRecentTransactionsSection();
-  elements.descriptionInput.focus();
+  const delay = isDesktopViewport() ? 0 : 140;
+  window.setTimeout(() => {
+    elements.descriptionInput.focus();
+  }, delay);
 }
 
 async function confirmAndDeleteById(transactionId) {
@@ -1392,7 +1490,7 @@ async function confirmAndDeleteById(transactionId) {
       enterCreateMode();
     }
 
-    renderAll();
+    updateDashboardSafe();
     showToast("Transaction deleted.", "success");
   } catch (error) {
     console.error("Delete transaction failed:", error);
@@ -1437,9 +1535,9 @@ function setFormFeedback(message, tone) {
 }
 
 function updateSubmitState() {
-  const payload = getFormPayload();
-  const validation = validatePayload(payload);
-  elements.submitButton.disabled = state.isSaving || !validation.valid;
+  if (!elements.submitButton) return;
+  // Keep button clickable for better UX; validation is enforced on submit.
+  elements.submitButton.disabled = Boolean(state.isSaving);
 }
 
 function setSavingState(nextState) {
