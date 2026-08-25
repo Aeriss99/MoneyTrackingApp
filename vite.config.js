@@ -3,7 +3,7 @@ import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [vue()],
-  base: "/MoneyTrackingApp/", // SANGAT PENTING: Wajib untuk GitHub Pages agar path aset tidak salah
+  base: "./", // Menggunakan pure relative path agar aman dihosting di nama folder apa pun
   build: {
     outDir: "dist",
   }

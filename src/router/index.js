@@ -6,7 +6,8 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  // Tetap pakai hash history, tapi passing BASE_URL agar aman di sub-folder
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
 });
 
