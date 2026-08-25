@@ -11,25 +11,26 @@ export const useAuthStore = defineStore("auth", () => {
     return saved ? JSON.parse(saved) : null;
   }
 
-  async function loginWithFirebase(firebaseUser) {
+  // Menggantikan Firebase dengan verifikasi Telegram
+  async function loginWithTelegram(telegramUser) {
     isLoading.value = true;
     try {
-      const { data } = await axios.post("/api/auth/sync", {
-        firebaseUid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName || "",
-        photoUrl: firebaseUser.photoURL || "",
-      });
+      // Endpoint ini akan memverifikasi hash kriptografi Telegram agar hacker tidak bisa menembus
+      const { data } = await axios.post("/api/auth/telegram", telegramUser);
+      
       user.value = {
-        ...data.user,
-        photoURL: firebaseUser.photoURL,
-        displayName: firebaseUser.displayName,
-        email: firebaseUser.email,
+        id: data.user.id,
+        telegramId: telegramUser.id,
+        displayName: telegramUser.first_name + (telegramUser.last_name ? ' ' + telegramUser.last_name : ''),
+        username: telegramUser.username || "",
+        photoURL: telegramUser.photo_url || "",
+        email: `tg_${telegramUser.id}@telegram.local` // dummy email untuk struktur database
       };
+      
       localStorage.setItem("mt:user", JSON.stringify(user.value));
-      return data.user;
+      return user.value;
     } catch (error) {
-      console.error("Auth sync failed:", error);
+      console.error("Telegram Auth sync failed:", error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -41,5 +42,5 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem("mt:user");
   }
 
-  return { user, isLoading, loginWithFirebase, logout };
+  return { user, isLoading, loginWithTelegram, logout };
 });

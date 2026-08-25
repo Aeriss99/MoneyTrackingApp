@@ -1,21 +1,32 @@
 import express from "express";
+import crypto from "crypto";
 import dbInterface from "../db/database.js";
 
 const router = express.Router();
 
 // --------------------------------------------------------
-// AUTH & SYNC (Simulated)
+// TELEGRAM AUTHENTICATION
 // --------------------------------------------------------
-router.post("/auth/sync", (req, res) => {
-  const { firebaseUid, email, displayName, photoUrl } = req.body;
+router.post("/auth/telegram", (req, res) => {
+  const telegramData = req.body;
   
-  if (!firebaseUid || !email) {
-    return res.status(400).json({ error: "Missing firebaseUid or email" });
+  // Karena kita di mode demo/portofolio, kita butuh BOT_TOKEN untuk validasi asli.
+  // Tapi karena Anda belum memberikan BOT_TOKEN-nya, kita gunakan mode bypass/trust untuk Vercel.
+  // Jika ini production, kita harus memvalidasi hash dengan crypto.createHmac('sha256', secretKey)
+  
+  if (!telegramData || !telegramData.id || !telegramData.first_name) {
+    return res.status(400).json({ error: "Invalid Telegram data" });
   }
 
   try {
-    const user = dbInterface.syncUser(firebaseUid, email, displayName || "", photoUrl || "");
-    res.json({ message: "User synced", user });
+    // Sinkronisasi dengan database InMemory kita
+    const user = dbInterface.syncUser(
+      `tg_${telegramData.id}`, 
+      `tg_${telegramData.id}@telegram.local`, 
+      telegramData.first_name + (telegramData.last_name ? ' ' + telegramData.last_name : ''), 
+      telegramData.photo_url || ""
+    );
+    res.json({ message: "User synced via Telegram", user });
   } catch (error) {
     console.error("Auth sync error:", error);
     res.status(500).json({ error: "Failed to sync user" });
