@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "cd client && npm install && cd ../api && npm install",
+    "postinstall": "echo 'Root postinstall bypassed for Vercel'",
     "build": "cd client && npm run build",
     "start": "cd api && node index.js",
     "dev:client": "cd client && npm run dev",
