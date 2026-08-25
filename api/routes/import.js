@@ -1,7 +1,9 @@
 import express from "express";
 import multer from "multer";
-import pdfParse from "pdf-parse";
 import dbInterface from "../db/database.js"; // menggunakan InMemory DB
+
+import * as pdfParseModule from "pdf-parse";
+const pdfParse = pdfParseModule.default ? pdfParseModule.default : pdfParseModule;
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
