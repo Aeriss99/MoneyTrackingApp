@@ -1,0 +1,17 @@
+{
+  "name": "money-tracking-app-v2",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd client && npm run build",
+    "start": "cd server && node index.js",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && node index.js",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "preview": "npm run build && npm run start",
+    "install:all": "cd client && npm install && cd ../server && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

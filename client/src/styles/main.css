@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-neo-bg font-sans text-[#1a1a2e] antialiased transition-colors duration-300 selection:bg-neo-accent selection:text-neo-dark;
+  }
+
+  body.dark {
+    @apply bg-neo-darkBg text-[#FDFBF7] selection:bg-neo-accent selection:text-neo-dark;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-neo-primary ring-offset-2 ring-offset-neo-bg;
+  }
+
+  .dark *:focus-visible {
+    @apply ring-neo-accent ring-offset-neo-darkBg;
+  }
+
+  /* Custom Scrollbar for better UI integration */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full border-2 border-neo-bg dark:bg-gray-600 dark:border-neo-darkBg;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+}
+
+@layer components {
+  /*
+    SOFT NEO-BRUTALISM SYSTEM
+    Ciri khas:
+    - Background putih/hitam (surface)
+    - Border 2px atau 3px (tidak terlalu tebal seperti 4px/6px)
+    - Shadow offset yang sedikit pudar (rgba)
+    - Border radius medium/large (rounded-2xl)
+  */
+
+  .neo-surface {
+    @apply bg-white border-[2.5px] border-neo-border rounded-2xl shadow-soft-neo dark:bg-neo-darkSurface dark:border-neo-darkBorder dark:shadow-soft-neo-dark transition-neo duration-300;
+  }
+
+  .neo-surface-hover {
+    @apply hover:-translate-y-1 hover:shadow-soft-neo-lg dark:hover:shadow-soft-neo-dark-lg;
+  }
+
+  .neo-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border-[2.5px] border-neo-border px-5 py-2.5
+           font-bold text-sm transition-neo duration-200 ease-neo-bounce cursor-pointer
+           shadow-soft-neo dark:border-neo-darkBorder dark:shadow-soft-neo-dark
+           active:translate-y-0.5 active:translate-x-0.5 active:shadow-none dark:active:shadow-none;
+  }
+
+  .neo-btn:hover:not(:disabled) {
+    @apply -translate-y-0.5 -translate-x-0.5 shadow-soft-neo-lg dark:shadow-soft-neo-dark-lg;
+  }
+
+  .neo-btn:disabled {
+    @apply opacity-60 cursor-not-allowed transform-none shadow-soft-neo dark:shadow-soft-neo-dark;
+  }
+
+  .neo-btn-primary {
+    @apply bg-neo-primary text-white;
+  }
+
+  .neo-btn-accent {
+    @apply bg-neo-accent text-neo-dark;
+  }
+
+  .neo-btn-danger {
+    @apply bg-neo-danger text-white;
+  }
+
+  .neo-btn-ghost {
+    @apply bg-white text-neo-border dark:bg-neo-darkSurface dark:text-white;
+  }
+
+  .neo-chip {
+    @apply inline-flex items-center gap-2 rounded-lg border-2 border-neo-border px-3 py-1 text-xs font-bold shadow-soft-neo-sm dark:border-neo-darkBorder dark:shadow-soft-neo-dark-sm transition-all;
+  }
+
+  .neo-badge {
+    @apply inline-flex items-center justify-center rounded border-2 border-neo-border px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider dark:border-neo-darkBorder;
+  }
+
+  /* Form Elements - Menghapus default browser */
+  .neo-input {
+    @apply w-full rounded-xl border-[2.5px] border-neo-border bg-white px-4 py-2.5
+           font-semibold text-neo-dark outline-none transition-neo duration-200
+           placeholder:text-gray-400 placeholder:font-medium
+           shadow-soft-neo-sm focus:-translate-y-0.5 focus:shadow-soft-neo focus:border-neo-primary
+           dark:border-neo-darkBorder dark:bg-neo-darkSurface dark:text-white
+           dark:shadow-soft-neo-dark-sm dark:focus:shadow-soft-neo-dark dark:focus:border-neo-accent;
+  }
+
+  /* Custom HTML Select is removed in favor of Custom Vue Components below */
+
+  .neo-toast {
+    @apply neo-surface fixed bottom-6 right-6 z-50 px-5 py-3 text-sm font-bold flex items-center gap-3
+           animate-[slideUp_0.4s_ease-neo-bounce];
+  }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
