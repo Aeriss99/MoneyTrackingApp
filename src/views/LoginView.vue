@@ -96,7 +96,7 @@ const isLoggingIn = ref(false);
 const errorMsg = ref("");
 
 // Wajib diganti dengan username bot yang dibuat oleh pengguna di BotFather!
-const TELEGRAM_BOT_USERNAME = "LINGZ_FINANCE_BOT_NAME_HERE"; // GANTI NANTI
+const TELEGRAM_BOT_USERNAME = "lingz_finance_bot";
 
 onMounted(() => {
   // Telegram callback (ketika user sukses klik Accept di Telegram)
