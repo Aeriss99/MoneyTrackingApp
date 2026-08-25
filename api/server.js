@@ -9,12 +9,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Dalam struktur folder /api, Vercel secara otomatis akan menjadikan file ini handler
+// Tangkap baik dengan /api maupun tanpa /api agar Vercel Serverless tidak kebingungan path
 app.use("/api", transactionRoutes);
 app.use("/api", importRoutes);
+app.use("/", transactionRoutes);
+app.use("/", importRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Vercel Serverless Function expects the Express app to be exported
 export default app;

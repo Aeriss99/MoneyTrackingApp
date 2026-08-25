@@ -6,9 +6,9 @@
     "postinstall": "cd client && npm install",
     "build": "cd client && npm run build",
     "vercel-build": "cd client && npm install && npm run build",
-    "start": "cd api && node index.js",
+    "start": "cd api && node server.js",
     "dev:client": "cd client && npm run dev",
-    "dev:server": "cd api && node index.js",
+    "dev:server": "cd api && node server.js",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "preview": "npm run build && npm run start",
     "install:all": "cd client && npm install && cd ../api && npm install"
