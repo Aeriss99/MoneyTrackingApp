@@ -1,60 +1,29 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import axios from "axios";
 
 export const useTransactionStore = defineStore("transactions", () => {
   const transactions = ref([]);
   const stats = ref(null);
   const isLoading = ref(false);
-  const filter = ref({
-    search: "",
-    type: "all",
-    category: "all",
-    account: "all",
-    sort: "newest",
-    startDate: "",
-    endDate: "",
-    minAmount: "",
-    maxAmount: "",
-  });
 
-  const filtered = computed(() => {
-    let result = [...transactions.value];
-    if (filter.value.type !== "all") {
-      result = result.filter((t) => t.type === filter.value.type);
+  // Load from local storage directly
+  function loadFromStorage() {
+    const saved = localStorage.getItem("mt:transactions");
+    if (saved) {
+      transactions.value = JSON.parse(saved);
     }
-    if (filter.value.category !== "all") {
-      result = result.filter((t) => t.category === filter.value.category);
-    }
-    if (filter.value.search) {
-      const q = filter.value.search.toLowerCase();
-      result = result.filter(
-        (t) =>
-          t.description.toLowerCase().includes(q) ||
-          t.category.toLowerCase().includes(q) ||
-          (t.note || "").toLowerCase().includes(q)
-      );
-    }
-    return result;
-  });
+  }
 
-  async function fetchAll(userId, query = {}) {
+  function saveToStorage() {
+    localStorage.setItem("mt:transactions", JSON.stringify(transactions.value));
+    calculateStats();
+  }
+
+  async function fetchAll(userId) {
     isLoading.value = true;
     try {
-      const params = new URLSearchParams();
-      Object.entries(query).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "" && value !== "all") {
-          params.set(key, value);
-        }
-      });
-
-      const queryString = params.toString();
-      const [txRes, statsRes] = await Promise.all([
-        axios.get(`/api/transactions/${userId}${queryString ? `?${queryString}` : ""}`),
-        axios.get(`/api/stats/${userId}`),
-      ]);
-      transactions.value = txRes.data.transactions;
-      stats.value = statsRes.data;
+      loadFromStorage();
+      calculateStats();
     } catch (error) {
       console.error("Fetch failed:", error);
     } finally {
@@ -63,38 +32,124 @@ export const useTransactionStore = defineStore("transactions", () => {
   }
 
   async function addTransaction(payload) {
-    const { data } = await axios.post("/api/transactions", payload);
-    transactions.value.unshift(data.transaction);
-    return data.transaction;
+    const newTx = {
+      ...payload,
+      id: Date.now() + Math.floor(Math.random() * 1000), // Simple unique ID
+      created_at: new Date().toISOString()
+    };
+    transactions.value.unshift(newTx);
+    saveToStorage();
+    return newTx;
   }
 
   async function updateTransaction(id, payload) {
-    const { data } = await axios.put(`/api/transactions/${id}`, payload);
     const index = transactions.value.findIndex((t) => t.id === id);
-    if (index !== -1) transactions.value[index] = data.transaction;
-    return data.transaction;
+    if (index !== -1) {
+      transactions.value[index] = { ...transactions.value[index], ...payload };
+      saveToStorage();
+    }
+    return transactions.value[index];
   }
 
   async function deleteTransaction(id, userId) {
-    await axios.delete(`/api/transactions/${id}`, { data: { userId } });
     transactions.value = transactions.value.filter((t) => t.id !== id);
+    saveToStorage();
+  }
+
+  // Frontend calculation matching backend logic
+  function calculateStats() {
+    const userTxs = transactions.value;
+    
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const now = new Date();
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const todayPrefix = currentMonthPrefix + `-${String(now.getDate()).padStart(2, '0')}`;
+    
+    let monthlyIncome = 0;
+    let monthlyExpense = 0;
+    let todayExpense = 0;
+    
+    const catMap = {};
+    const accMap = {};
+    const trendMap = {};
+
+    userTxs.forEach(tx => {
+      // Balance
+      if (tx.type === 'income') totalIncome += tx.amount;
+      if (tx.type === 'expense') totalExpense += tx.amount;
+      
+      // Monthly & Today
+      if (tx.date.startsWith(currentMonthPrefix)) {
+        if (tx.type === 'income') monthlyIncome += tx.amount;
+        if (tx.type === 'expense') {
+          monthlyExpense += tx.amount;
+          catMap[tx.category] = (catMap[tx.category] || 0) + tx.amount;
+        }
+      }
+      if (tx.date.startsWith(todayPrefix) && tx.type === 'expense') {
+        todayExpense += tx.amount;
+      }
+      
+      // Account Breakdown
+      const acc = tx.account_name || tx.accountName || 'Cash';
+      if (!accMap[acc]) accMap[acc] = { account_name: acc, balance: 0, transaction_count: 0 };
+      accMap[acc].transaction_count += 1;
+      accMap[acc].balance += (tx.type === 'income' ? tx.amount : -tx.amount);
+      
+      // Trend
+      const monthKey = tx.date.substring(0, 7); // YYYY-MM
+      const tKey = `${monthKey}_${tx.type}`;
+      if (!trendMap[tKey]) trendMap[tKey] = { month: monthKey, type: tx.type, total: 0 };
+      trendMap[tKey].total += tx.amount;
+    });
+
+    const categoryBreakdown = Object.keys(catMap).map(k => ({ category: k, total: catMap[k] }))
+                                   .sort((a,b) => b.total - a.total);
+                                   
+    stats.value = {
+      balance: totalIncome - totalExpense,
+      monthlyIncome,
+      monthlyExpense,
+      todayExpense,
+      transactionCount: userTxs.length,
+      categoryBreakdown,
+      accountBalances: Object.values(accMap).sort((a,b) => b.balance - a.balance),
+      monthlyTrend: Object.values(trendMap)
+    };
+  }
+
+  // Add this strictly for frontend bulk imports
+  function bulkAddTransactions(newTxs) {
+    const formatted = newTxs.map(tx => ({
+      ...tx,
+      id: Date.now() + Math.floor(Math.random() * 10000),
+      created_at: new Date().toISOString()
+    }));
+    transactions.value = [...formatted, ...transactions.value];
+    saveToStorage();
+    return formatted.length;
+  }
+
+  function overrideAll(newTransactions) {
+    transactions.value = newTransactions;
+    saveToStorage();
   }
 
   async function refreshStats(userId) {
-    const { data } = await axios.get(`/api/stats/${userId}`);
-    stats.value = data;
+    calculateStats();
   }
 
   return {
     transactions,
     stats,
     isLoading,
-    filter,
-    filtered,
     fetchAll,
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    bulkAddTransactions,
+    overrideAll,
     refreshStats,
   };
 });

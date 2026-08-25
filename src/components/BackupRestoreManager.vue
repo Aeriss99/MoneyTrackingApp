@@ -35,21 +35,29 @@
 
 <script setup>
 import { ref } from "vue";
-import axios from "axios";
 import { useToastStore } from "../stores/toast.js";
+import { useTransactionStore } from "../stores/transactions.js";
+import { useBudgetStore } from "../stores/budget.js";
 
 const props = defineProps({ userId: [String, Number] });
 const emit = defineEmits(["restored"]);
 
 const toast = useToastStore();
+const transactionStore = useTransactionStore();
+const budgetStore = useBudgetStore();
 const restoreInput = ref(null);
 const isWorking = ref(false);
 
 async function downloadBackup() {
-  if (!props.userId) return;
   isWorking.value = true;
   try {
-    const { data } = await axios.get(`/api/backup/${props.userId}`);
+    const data = {
+      version: "2.1-static",
+      export_date: new Date().toISOString(),
+      transactions: transactionStore.transactions || [],
+      budgets: budgetStore.budgets || []
+    };
+    
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
@@ -87,17 +95,17 @@ async function handleRestoreUpload(e) {
       }
 
       isWorking.value = true;
-      const { data } = await axios.post(`/api/backup/restore/${props.userId}`, {
-        transactions: backupData.transactions,
-        budgets: backupData.budgets || []
-      });
+      
+      transactionStore.overrideAll(backupData.transactions);
+      budgetStore.overrideAll(backupData.budgets || []);
 
-      toast.show(`Data dipulihkan. (${data.transactionsCount} transaksi)`, "success");
+      toast.show(`Data dipulihkan. (${backupData.transactions.length} transaksi)`, "success");
       emit("restored");
     } catch (err) {
       toast.show("Gagal membaca file JSON backup.", "error");
     } finally {
       isWorking.value = false;
+      if (restoreInput.value) restoreInput.value.value = "";
     }
   };
   reader.readAsText(file);

@@ -1,16 +1,26 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import axios from "axios";
 
 export const useBudgetStore = defineStore("budget", () => {
   const budgets = ref([]);
   const isLoading = ref(false);
 
+  function loadFromStorage() {
+    const saved = localStorage.getItem("mt:budgets");
+    if (saved) {
+      budgets.value = JSON.parse(saved);
+    }
+  }
+
+  function saveToStorage() {
+    localStorage.setItem("mt:budgets", JSON.stringify(budgets.value));
+  }
+
   async function fetchBudgets(userId, month) {
     isLoading.value = true;
     try {
-      const { data } = await axios.get(`/api/budgets/${userId}/${month}`);
-      budgets.value = data.budgets;
+      loadFromStorage();
+      // Filter is done visually on frontend, or we just return all
     } catch (error) {
       console.error("Failed fetching budgets:", error);
     } finally {
@@ -19,25 +29,23 @@ export const useBudgetStore = defineStore("budget", () => {
   }
 
   async function setBudget(userId, category, limitAmount, month) {
-    try {
-      const { data } = await axios.post("/api/budgets", {
-        userId,
-        category,
-        limitAmount,
-        month
-      });
-      const index = budgets.value.findIndex((b) => b.category === category && b.month === month);
-      if (index !== -1) {
-        budgets.value[index] = data.budget;
-      } else {
-        budgets.value.push(data.budget);
-      }
-      return data.budget;
-    } catch (error) {
-      console.error("Failed setting budget:", error);
-      throw error;
+    const index = budgets.value.findIndex((b) => b.category === category && b.month === month);
+    let newBudget;
+    if (index !== -1) {
+      budgets.value[index].limit_amount = limitAmount;
+      newBudget = budgets.value[index];
+    } else {
+      newBudget = { id: Date.now(), user_id: userId, category, limit_amount: limitAmount, month };
+      budgets.value.push(newBudget);
     }
+    saveToStorage();
+    return newBudget;
   }
 
-  return { budgets, isLoading, fetchBudgets, setBudget };
+  function overrideAll(newBudgets) {
+    budgets.value = newBudgets;
+    saveToStorage();
+  }
+
+  return { budgets, isLoading, fetchBudgets, setBudget, overrideAll };
 });

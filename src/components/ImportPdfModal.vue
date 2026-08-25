@@ -1,35 +1,29 @@
 <template>
   <Transition name="fade-scale">
     <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <!-- Backdrop blur -->
       <div @click="close" class="absolute inset-0 bg-[#1E1E2A]/40 dark:bg-[#070707]/60 backdrop-blur-sm transition-opacity"></div>
 
-      <!-- Modal Card (Neo-Surface) -->
       <div class="neo-surface relative w-full max-w-2xl bg-white dark:bg-neo-darkSurface p-6 sm:p-8 max-h-[90vh] overflow-y-auto z-10 flex flex-col gap-6">
         
-        <!-- Close button -->
         <button @click="close" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-neo-danger hover:text-white dark:bg-white/10 dark:hover:bg-neo-danger text-gray-500 transition-colors">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
-        <!-- Header -->
         <div>
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-neo-success/10 text-neo-success font-black text-[10px] uppercase tracking-widest mb-3 border border-neo-success/20">
-            <span>⚡ AI PDF Parser</span>
+            <span>⚡ AI PDF Parser (Demo)</span>
           </div>
           <h3 class="text-2xl sm:text-3xl font-black text-neo-dark dark:text-white tracking-tight leading-none mb-2">Impor Mutasi Rekening</h3>
           <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Upload file PDF mutasi dari bank untuk mengekstrak transaksi secara otomatis.
+            Upload file PDF mutasi dari bank untuk mengekstrak transaksi. (Ini mode demo).
           </p>
         </div>
 
-        <!-- Bank Selector -->
         <div class="relative z-20">
           <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">Pilih Bank / E-Wallet Asal</label>
           <NeoSelect v-model="selectedBank" :options="bankOptions" />
         </div>
 
-        <!-- Dropzone / Drag Area -->
         <div 
           v-if="!parsedTransactions.length"
           @dragover.prevent="dragOver = true"
@@ -56,7 +50,6 @@
           </div>
         </div>
 
-        <!-- Preview Results Table -->
         <div v-if="parsedTransactions.length && !isParsing" class="flex flex-col gap-4 animate-[slideUp_0.4s_ease-out]">
           <div class="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-neo-success/10 border border-neo-success/20">
             <div>
@@ -108,8 +101,8 @@
 
 <script setup>
 import { ref } from "vue";
-import axios from "axios";
 import { useToastStore } from "../stores/toast.js";
+import { useTransactionStore } from "../stores/transactions.js";
 import NeoSelect from "./NeoSelect.vue";
 
 const incomeCategories = ["Gaji", "Bonus", "Freelance", "Investasi", "Hadiah", "Lainnya"];
@@ -125,6 +118,8 @@ const props = defineProps({ isOpen: Boolean, userId: [String, Number] });
 const emit = defineEmits(["close", "imported"]);
 
 const toast = useToastStore();
+const transactionStore = useTransactionStore();
+
 const fileInput = ref(null);
 const dragOver = ref(false);
 const isParsing = ref(false);
@@ -167,36 +162,46 @@ function handleDrop(e) {
 
 async function uploadFile(file) {
   isParsing.value = true;
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("bank", selectedBank.value);
-
-  try {
-    const { data } = await axios.post("/api/import/pdf", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
-    if (data.transactions && data.transactions.length) {
-      parsedTransactions.value = data.transactions;
-      toast.show(`Berhasil mendeteksi ${data.transactions.length} mutasi!`, "success");
-    } else {
-      toast.show("Mutasi tidak terdeteksi. Silakan periksa format PDF Anda.", "warning");
-    }
-  } catch (error) {
-    toast.show("Gagal memproses file PDF.", "error");
-  } finally {
+  
+  // Simulasi pembacaan PDF di browser
+  setTimeout(() => {
+    parsedTransactions.value = [
+      {
+        date: new Date().toISOString().slice(0,10),
+        description: "Transfer Masuk Bank",
+        amount: 2500000,
+        type: "income",
+        category: "Gaji"
+      },
+      {
+        date: new Date().toISOString().slice(0,10),
+        description: "Pembayaran E-Commerce",
+        amount: 150000,
+        type: "expense",
+        category: "Belanja"
+      }
+    ];
+    toast.show(`Berhasil mendeteksi ${parsedTransactions.value.length} mutasi (Demo)!`, "success");
     isParsing.value = false;
-  }
+  }, 1500);
 }
 
 async function saveBulk() {
-  if (!props.userId || !parsedTransactions.value.length) return;
   isSaving.value = true;
   try {
-    const { data } = await axios.post("/api/import/bulk", {
-      userId: props.userId,
-      transactions: parsedTransactions.value
-    });
-    toast.show(`Berhasil menyimpan ${data.count} transaksi mutasi!`, "success");
+    const formatted = parsedTransactions.value.map(tx => ({
+      description: tx.description,
+      amount: tx.amount,
+      type: tx.type,
+      category: tx.category,
+      accountName: "Bank",
+      date: tx.date,
+      note: "Hasil import PDF"
+    }));
+    
+    transactionStore.bulkAddTransactions(formatted);
+    
+    toast.show(`Berhasil menyimpan transaksi mutasi!`, "success");
     emit("imported");
     close();
   } catch (error) {
