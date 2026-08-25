@@ -3,9 +3,9 @@ import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [vue()],
-  base: "/", // Memastikan rute aset diakses dari root
+  base: "./", // SANGAT PENTING: Gunakan relative path agar Vercel tidak membajak asset root
   build: {
-    outDir: "dist", // Folder output untuk produksi
+    outDir: "dist",
   },
   server: {
     port: 5173,
