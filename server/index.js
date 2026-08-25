@@ -25,6 +25,13 @@ app.get("*", (req, res) => {
   res.sendFile(join(__dirname, "../client/dist/index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// For Vercel Serverless Function support
+if (process.env.VERCEL) {
+  // Don't use app.listen in Vercel
+} else {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
