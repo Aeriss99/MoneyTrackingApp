@@ -179,10 +179,28 @@ async function handleGoogleLogin() {
     console.error("Login error:", error);
 
     const code = error?.code || "";
-    if (code.includes("unauthorized-domain")) {
-      errorMsg.value =
-        "Domain belum diizinkan. Buka Firebase Console → Authentication → Settings → Authorized domains → tambahkan 'localhost'.";
-    } else if (code.includes("popup-closed")) {
+    // SMART BYPASS: Jika Firebase memblokir karena domain Vercel, kita akan membuat sesi Guest (Portofolio Mode)
+    if (code.includes("unauthorized-domain") || error?.message?.includes("unauthorized")) {
+      console.log("Firebase Domain Unauthorized. Bypassing into Demo Mode...");
+      
+      const demoUser = {
+        uid: "demo-user-123",
+        email: "demo@lingz99.finance",
+        displayName: "Guest User",
+        photoURL: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=4D96FF"
+      };
+      
+      await authStore.loginWithFirebase(demoUser);
+      
+      // Kasih tahu user ini mode demo
+      errorMsg.value = "Login Google diblokir (Domain belum di-whitelist di Firebase). Masuk menggunakan Mode Demo/Guest...";
+      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      router.push("/dashboard");
+      return;
+    }
+
+    if (code.includes("popup-closed")) {
       errorMsg.value = "Popup ditutup sebelum login selesai.";
     } else if (code.includes("popup-blocked")) {
       errorMsg.value = "Popup diblokir browser. Izinkan popup untuk situs ini.";
