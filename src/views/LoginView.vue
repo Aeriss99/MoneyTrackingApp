@@ -59,9 +59,20 @@
 
             <!-- TELEGRAM WIDGET CONTAINER -->
             <div v-if="!isLoggingIn" class="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 min-h-[100px]">
-              <!-- Tanda tempat Widget Telegram (harus pakai raw HTML karena script tag) -->
-              <div id="telegram-login-widget-container"></div>
-              <p class="text-xs text-gray-500 mt-4 text-center">Menunggu otorisasi Telegram...</p>
+              <div ref="telegramContainer" class="flex justify-center items-center w-full min-h-[40px]"></div>
+              <p class="text-xs text-gray-500 mt-4 text-center">Data Anda aman tersimpan secara lokal.</p>
+              
+              <!-- Divider -->
+              <div class="w-full flex items-center gap-3 my-6">
+                <div class="h-px bg-white/10 flex-1"></div>
+                <span class="text-xs font-bold text-white/30 uppercase tracking-widest">Atau</span>
+                <div class="h-px bg-white/10 flex-1"></div>
+              </div>
+
+              <!-- Fallback / Demo Button -->
+              <button @click="handleDemoLogin" class="neo-btn bg-white/5 hover:bg-white/10 text-white w-full border-white/20 hover:border-white/40 !shadow-none">
+                👀 Masuk sebagai Guest (Demo)
+              </button>
             </div>
 
             <div v-else class="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 min-h-[100px]">
@@ -94,9 +105,30 @@ const router = useRouter();
 const authStore = useAuthStore();
 const isLoggingIn = ref(false);
 const errorMsg = ref("");
+const telegramContainer = ref(null);
 
 // Wajib diganti dengan username bot yang dibuat oleh pengguna di BotFather!
 const TELEGRAM_BOT_USERNAME = "lingz_finance_bot";
+
+async function handleDemoLogin() {
+  isLoggingIn.value = true;
+  errorMsg.value = "";
+  try {
+    const demoUser = {
+      id: "99999999",
+      first_name: "Guest",
+      last_name: "User",
+      username: "guest_finance",
+      photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=4D96FF"
+    };
+    await authStore.loginWithTelegram(demoUser);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    router.push("/dashboard");
+  } catch (error) {
+    errorMsg.value = "Gagal masuk mode Demo.";
+    isLoggingIn.value = false;
+  }
+}
 
 onMounted(() => {
   // Telegram callback (ketika user sukses klik Accept di Telegram)
@@ -113,21 +145,20 @@ onMounted(() => {
     }
   };
 
-  // Menyuntikkan script Telegram Widget secara dinamis agar Vue tidak marah
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = "https://telegram.org/js/telegram-widget.js?22";
-  
-  // NANTI: User harus mengganti ini dengan username bot aslinya
-  script.setAttribute("data-telegram-login", TELEGRAM_BOT_USERNAME);
-  script.setAttribute("data-size", "large");
-  script.setAttribute("data-radius", "16");
-  script.setAttribute("data-onauth", "onTelegramAuth(user)");
-  script.setAttribute("data-request-access", "write");
-  
-  const container = document.getElementById("telegram-login-widget-container");
-  if (container) {
-    container.appendChild(script);
+  if (telegramContainer.value) {
+    // Pastikan container bersih sebelum me-render ulang
+    telegramContainer.value.innerHTML = '';
+    
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.setAttribute("data-telegram-login", TELEGRAM_BOT_USERNAME);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "16");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
+    
+    telegramContainer.value.appendChild(script);
   }
 });
 </script>
